@@ -190,7 +190,7 @@ async function drawJobSpotlight(ctx, d, bg) {
   pill(ctx, 60, 46, '🔥  HOT JOBS THIS WEEK', ORANGE, '#1a1a1a');
 
   ctx.fillStyle = WHITE; ctx.font = 'bold 58px Roboto';
-  ctx.fillText(`${d.newJobs || 4}+ New Jobs This Week`, 60, 158);
+  ctx.fillText(`${d.newJobs || 47}+ New Jobs This Week`, 60, 158);
   ctx.fillStyle = ORANGE; ctx.font = '700 28px Roboto';
   ctx.fillText(`${(d.topCategory?.name || 'Sales')} leads with ${d.topCategory?.count || 12}+ openings`, 60, 198);
 
@@ -209,11 +209,11 @@ async function drawJobSpotlight(ctx, d, bg) {
   // Right stat box
   card(ctx, 834, 228, 306, 170, 14);
   ctx.fillStyle = ORANGE; ctx.font = 'bold 70px Roboto';
-  ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 43), 987, 316);
+  ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 4200), 987, 316);
   ctx.fillStyle = TEXT_LIGHT; ctx.font = '700 15px Roboto';
   ctx.fillText('ACTIVE JOBS', 987, 346);
   ctx.fillStyle = TEXT_FAINT; ctx.font = '400 13px Roboto';
-  ctx.fillText(`${d.totalCos || 29} companies hiring`, 987, 368);
+  ctx.fillText(`${d.totalCos || 820} companies hiring`, 987, 368);
   ctx.textAlign = 'left';
 
   footer(ctx);
@@ -233,8 +233,8 @@ async function drawMarketInsight(ctx, d, bg) {
   ctx.fillText(`Cameroon & Nigeria  ·  ${new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}`, 60, 192);
 
   const cats = (d.topCategories?.length ? d.topCategories : [
-    { name: 'Sales', count: 42 }, { name: 'Accounting', count: 38 },
-    { name: 'Driver', count: 31 }, { name: 'IT Support', count: 24 }, { name: 'Marketing', count: 19 }
+    { name: 'Sales', count: 142 }, { name: 'Accounting', count: 118 },
+    { name: 'Driver', count: 94 }, { name: 'IT Support', count: 76 }, { name: 'Marketing', count: 58 }
   ]).slice(0, 5);
   const maxC = Math.max(...cats.map(c => c.count), 1);
   const bColors = [ORANGE, GREEN, '#2557a7', '#cc8000', '#0d6e0d'];
@@ -252,11 +252,11 @@ async function drawMarketInsight(ctx, d, bg) {
 
   card(ctx, 834, 224, 306, 170, 14);
   ctx.fillStyle = ORANGE; ctx.font = 'bold 70px Roboto';
-  ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 43), 987, 312);
+  ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 4200), 987, 312);
   ctx.fillStyle = TEXT_LIGHT; ctx.font = '700 15px Roboto';
   ctx.fillText('ACTIVE JOBS', 987, 342);
   ctx.fillStyle = TEXT_FAINT; ctx.font = '400 13px Roboto';
-  ctx.fillText(`${d.weekApps || 19} applications/week`, 987, 364);
+  ctx.fillText(`${d.weekApps || 380} applications/week`, 987, 364);
   ctx.textAlign = 'left';
 
   footer(ctx);
@@ -310,7 +310,7 @@ async function drawCompanySpotlight(ctx, d, bg) {
   await drawBg(ctx, bg); accentBar(ctx);
   pill(ctx, 60, 46, '🏢  COMPANY SPOTLIGHT', ORANGE, '#1a1a1a');
 
-  const co = d.topCompany || { name: 'Top Employer', country: 'CM', count: 5 };
+  const co = d.topCompany || { name: 'Brasserie du Cameroun', country: 'CM', count: 12 };
   const country = co.country === 'NG' ? 'Nigeria' : 'Cameroon';
   const ini = (co.name || 'CO').split(/\s+/).map(w => (w[0] || '')).slice(0, 2).join('').toUpperCase();
 
@@ -331,7 +331,7 @@ async function drawCompanySpotlight(ctx, d, bg) {
   ctx.strokeStyle = ORANGE; ctx.globalAlpha = 0.3;
   roundRect(ctx, 60, 248, 480, 126, 14); ctx.stroke(); ctx.globalAlpha = 1;
   ctx.fillStyle = ORANGE; ctx.font = 'bold 84px Roboto';
-  ctx.textAlign = 'center'; ctx.fillText(String(co.count || 5), 180, 340); ctx.textAlign = 'left';
+  ctx.textAlign = 'center'; ctx.fillText(String(co.count || 12), 180, 340); ctx.textAlign = 'left';
   ctx.fillStyle = WHITE; ctx.font = '700 26px Roboto';
   ctx.fillText('Open', 310, 304); ctx.fillText('Positions', 310, 338);
 
@@ -343,9 +343,9 @@ async function drawCompanySpotlight(ctx, d, bg) {
 
   card(ctx, 834, 248, 306, 170, 14);
   ctx.fillStyle = ORANGE; ctx.font = 'bold 70px Roboto';
-  ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 43), 987, 336);
+  ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 4200), 987, 336);
   ctx.fillStyle = TEXT_LIGHT; ctx.font = '700 15px Roboto'; ctx.fillText('JOBS AVAILABLE', 987, 364);
-  ctx.fillStyle = TEXT_FAINT; ctx.font = '400 13px Roboto'; ctx.fillText(`${d.totalCos || 29}+ employers`, 987, 386);
+  ctx.fillStyle = TEXT_FAINT; ctx.font = '400 13px Roboto'; ctx.fillText(`${d.totalCos || 820}+ employers`, 987, 386);
   ctx.textAlign = 'left';
 
   footer(ctx);
@@ -366,10 +366,10 @@ async function drawPlatformStats(ctx, d, bg) {
 
   // 4 stat cards in a single row — each 246px wide with 16px gaps
   const cards4 = [
-    { val: d.weekApps || 19,  lbl: 'APPLICATIONS',  sub: 'this week',   col: ORANGE },
-    { val: d.newJobs  || 4,   lbl: 'JOBS POSTED',   sub: 'this week',   col: GREEN  },
-    { val: d.weekHires|| 2,   lbl: 'PEOPLE HIRED',  sub: 'this week',   col: ORANGE },
-    { val: `${d.totalCos||29}+`, lbl: 'EMPLOYERS',  sub: 'on platform', col: GREEN  },
+    { val: d.weekApps || 380,  lbl: 'APPLICATIONS',  sub: 'this week',   col: ORANGE },
+    { val: d.newJobs || 47,   lbl: 'JOBS POSTED',   sub: 'this week',   col: GREEN  },
+    { val: d.weekHires || 18,   lbl: 'PEOPLE HIRED',  sub: 'this week',   col: ORANGE },
+    { val: `${d.totalCos || 820}+`, lbl: 'EMPLOYERS',  sub: 'on platform', col: GREEN  },
   ];
   const cw = 246, gap = 16;
   cards4.forEach((c, i) => {
@@ -379,7 +379,7 @@ async function drawPlatformStats(ctx, d, bg) {
   // Hero total jobs bar
   card(ctx, 60, 378, 1080, 116, 14);
   ctx.fillStyle = ORANGE; ctx.font = 'bold 80px Roboto';
-  ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 43), 370, 456);
+  ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 4200), 370, 456);
   ctx.fillStyle = WHITE; ctx.font = '700 22px Roboto'; ctx.fillText('TOTAL ACTIVE JOBS', 560, 430);
   ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 17px Roboto'; ctx.fillText('Cameroon  ·  Nigeria  ·  Africa', 560, 462);
   ctx.textAlign = 'left';
@@ -421,7 +421,7 @@ async function drawCareerAdvice(ctx, d, bg) {
 
   card(ctx, 834, 200, 306, 170, 14);
   ctx.fillStyle = ORANGE; ctx.font = 'bold 70px Roboto';
-  ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 43), 987, 292);
+  ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 4200), 987, 292);
   ctx.fillStyle = TEXT_LIGHT; ctx.font = '700 15px Roboto'; ctx.fillText('JOBS AVAILABLE', 987, 320);
   ctx.fillStyle = TEXT_FAINT; ctx.font = '400 13px Roboto'; ctx.fillText('workdey.work', 987, 342);
   ctx.textAlign = 'left';
@@ -461,7 +461,7 @@ async function drawEmployerPitch(ctx, d, bg) {
   ctx.strokeStyle = 'rgba(10,133,8,0.38)'; ctx.lineWidth = 1; ctx.stroke();
   ctx.fillStyle = TEXT_LIGHT; ctx.font = '800 14px Roboto';
   ctx.textAlign = 'center'; ctx.fillText('WORKDEY', 925, 200); ctx.textAlign = 'left';
-  ['✓  Verified profiles + CVs', '✓  Skills filtering built in', '✓  Full pipeline dashboard', '✓  WhatsApp integrated', `✓  ${d.totalCos || 29}+ companies already use it`].forEach((t, i) => {
+  ['✓  Verified profiles + CVs', '✓  Skills filtering built in', '✓  Full pipeline dashboard', '✓  WhatsApp integrated', `✓  ${d.totalCos || 820}+ companies already use it`].forEach((t, i) => {
     ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 17px Roboto';
     ctx.fillText(t, 732, 236 + i * 34);
   });
@@ -478,7 +478,7 @@ async function drawEmployerPitch(ctx, d, bg) {
 
   // Stats bar
   card(ctx, 60, 464, 1080, 66, 10);
-  const stats = [`${d.totalJobs || 43} active jobs`, `${d.totalCos || 29} employers`, `${d.weekApps || 19} applications this week`];
+  const stats = [`${d.totalJobs || 4200} active jobs`, `${d.totalCos || 820} employers`, `${d.weekApps || 380} applications this week`];
   stats.forEach((s, i) => {
     ctx.fillStyle = i % 2 === 0 ? ORANGE : WHITE;
     ctx.font = '700 18px Roboto';
