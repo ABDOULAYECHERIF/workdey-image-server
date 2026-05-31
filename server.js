@@ -1,28 +1,19 @@
 // ═══════════════════════════════════════════════════════════════════
-// WorkDey Image Generator Server
-// AI background (Flux Pro) + branded canvas overlay
+// WorkDey Flyer Generator — Pure AI flyers via Ideogram (text + design)
+// Portrait 3:4 (1080x1350 style) — optimized for LinkedIn feed
 // Deploy on Railway — node server.js
 // ═══════════════════════════════════════════════════════════════════
 
 const express = require('express');
-const { createCanvas, loadImage, GlobalFonts } = require('@napi-rs/canvas');
 const fetch = require('node-fetch');
-const path = require('path');
-
-// Register bundled fonts — required since Railway has no system fonts
-GlobalFonts.registerFromPath(path.join(__dirname, 'fonts', 'Roboto-Regular.ttf'), 'Roboto');
-GlobalFonts.registerFromPath(path.join(__dirname, 'fonts', 'Roboto-Bold.ttf'), 'Roboto');
-GlobalFonts.registerFromPath(path.join(__dirname, 'fonts', 'Roboto-Black.ttf'), 'Roboto');
-console.log('Fonts registered:', GlobalFonts.families.map(f => f.family).join(', '));
 
 const app = express();
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
-const FAL_KEY     = process.env.FAL_API_KEY || '';
+const FAL_KEY = process.env.FAL_API_KEY || '';
 const AUTH_SECRET = process.env.AUTH_SECRET || 'workdey-image-2026';
 
-// ─── AUTH ────────────────────────────────────────────────────────
 app.use((req, res, next) => {
   if (req.path === '/health') return next();
   const auth = req.headers['x-auth-secret'] || req.query.secret;
@@ -30,730 +21,133 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/health', (req, res) => res.json({ ok: true }));
-
-// ─── CONSTANTS ───────────────────────────────────────────────────
-const W = 1200, H = 627;
-
-const GREEN       = '#0a8508';
-const GREEN_DARK  = '#063d20';
-const ORANGE      = '#f7a814';
-const WHITE       = '#ffffff';
-const TEXT_LIGHT  = '#a8d5a2';
-const TEXT_FAINT  = '#6db96d';
-const CARD_FILL   = 'rgba(255,255,255,0.09)';
-const CARD_STROKE = 'rgba(255,255,255,0.18)';
-
-// ─── FETCH AI BACKGROUND ─────────────────────────────────────────
-const BG_PROMPTS = {
-  job_spotlight:     'Confident young African professionals working in a bright modern glass office in Lagos Nigeria, natural daylight, warm professional atmosphere, no text',
-  market_insight:    'Aerial view of Victoria Island Lagos business district at golden hour, glass skyscrapers, warm orange sunset, cinematic, no text',
-  seeker_tip:        'Focused young African man writing at a minimalist wooden desk in a bright home office, warm side window light, cozy productive atmosphere, no text',
-  company_spotlight: 'Modern glass corporate headquarters entrance lobby in Douala Cameroon, marble floors, professional lighting, African executives, no text',
-  platform_stats:    'Large diverse group of smiling young African professionals in business attire on steps of modern glass office building Lagos at golden hour, no text',
-  career_advice:     'Confident African woman in tailored blazer in a bright modern meeting room, speaking clearly, floor to ceiling windows, city view, natural daylight, no text',
-  employer_pitch:    'Professional African HR manager standing confidently in modern open-plan office in Douala, team working in background, corporate setting, no text',
-  industry_report:   'African economists and analysts in a modern conference room reviewing charts and data, World Bank style professional setting, Douala Cameroon, no text',
-  employer_tip:      'Professional HR manager in a bright modern office reviewing CVs and resumes on a desk, organized and focused, African business setting, no text',
-  weekly_roundup:    'Panoramic view of a vibrant African city Lagos or Douala at sunset, busy streets, economic activity, optimistic atmosphere, no text',
-  success_story:     'Happy young African professional in smart business attire celebrating or smiling after receiving good news, bright optimistic setting, no text',
-  gig_economy:       'Energetic young African gig worker on a motorbike delivery, or a freelancer working on laptop in a café in Lagos, dynamic urban setting, no text',
-  youth_employment:  'Group of young African students and graduates in graduation gowns or business attire, diverse, optimistic, university or office background, no text',
-  salary_insight:    'Professional African businessman or woman reviewing financial documents or laptop showing salary data, modern office, confident expression, no text',
-};
-
-async function fetchBg(postType) {
-  if (!FAL_KEY) return null;
-  try {
-    const prompt = (BG_PROMPTS[postType] || BG_PROMPTS.platform_stats)
-      + ' Photorealistic professional photography. 16:9 landscape. No text no logos no watermarks.';
-    const res = await fetch('https://fal.run/fal-ai/flux-pro', {
-      method: 'POST',
-      headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, image_size: 'landscape_16_9', num_images: 1, safety_tolerance: '5', output_format: 'jpeg' }),
-    });
-    if (!res.ok) throw new Error(`fal ${res.status}`);
-    const data = await res.json();
-    if (!data.images?.[0]?.url) throw new Error('no image url');
-    const ir = await fetch(data.images[0].url);
-    if (!ir.ok) throw new Error('download failed');
-    return await ir.buffer();
-  } catch (e) {
-    console.error('BG failed:', e.message, '— using gradient');
-    return null;
-  }
-}
-
-// ─── CANVAS HELPERS ──────────────────────────────────────────────
-function roundRect(ctx, x, y, w, h, r = 10) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.arcTo(x + w, y, x + w, y + r, r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
-  ctx.lineTo(x + r, y + h);
-  ctx.arcTo(x, y + h, x, y + h - r, r);
-  ctx.lineTo(x, y + r);
-  ctx.arcTo(x, y, x + r, y, r);
-  ctx.closePath();
-}
-
-function card(ctx, x, y, w, h, r = 12) {
-  roundRect(ctx, x, y, w, h, r);
-  ctx.fillStyle = CARD_FILL;
-  ctx.fill();
-  ctx.strokeStyle = CARD_STROKE;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-}
-
-function pill(ctx, x, y, label, bg = ORANGE, fg = '#1a1a1a') {
-  ctx.font = '800 13px Roboto';
-  const tw = ctx.measureText(label).width;
-  const pw = tw + 40, ph = 38;
-  roundRect(ctx, x, y, pw, ph, 19);
-  ctx.fillStyle = bg; ctx.fill();
-  ctx.fillStyle = fg;
-  ctx.textAlign = 'center';
-  ctx.fillText(label, x + pw / 2, y + 25);
-  ctx.textAlign = 'left';
-  return pw;
-}
-
-function logo(ctx, x, y, size = 34) {
-  ctx.font = `bold ${size}px Roboto`;
-  ctx.fillStyle = GREEN;
-  ctx.fillText('Work', x, y);
-  const ww = ctx.measureText('Work').width;
-  ctx.fillStyle = ORANGE;
-  ctx.fillText('Dey', x + ww, y);
-  const dw = ctx.measureText('Dey').width;
-  ctx.fillStyle = TEXT_LIGHT;
-  ctx.font = `400 ${Math.round(size * 0.48)}px Roboto`;
-  ctx.fillText('  workdey.work', x + ww + dw, y - 2);
-}
-
-function footer(ctx) {
-  ctx.strokeStyle = 'rgba(255,255,255,0.13)';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(60, H - 68); ctx.lineTo(W - 60, H - 68); ctx.stroke();
-  logo(ctx, 60, H - 28);
-}
-
-function accentBar(ctx) {
-  ctx.fillStyle = ORANGE;
-  ctx.fillRect(0, 0, 6, H);
-  const g = ctx.createLinearGradient(0, H - 4, W, H - 4);
-  g.addColorStop(0, GREEN); g.addColorStop(1, ORANGE);
-  ctx.fillStyle = g; ctx.fillRect(0, H - 4, W, 4);
-}
-
-async function drawBg(ctx, buf, style = 'dark') {
-  if (buf) {
-    try {
-      const img = await loadImage(buf);
-      ctx.drawImage(img, 0, 0, W, H);
-    } catch {
-      const g = ctx.createLinearGradient(0, 0, W, H);
-      g.addColorStop(0, '#0a3d2e'); g.addColorStop(1, GREEN_DARK);
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    }
-  } else {
-    const g = ctx.createLinearGradient(0, 0, W, H);
-    g.addColorStop(0, '#0a3d2e'); g.addColorStop(1, GREEN_DARK);
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  }
-  const alphas = { dark: [0.78, 0.68], medium: [0.65, 0.50], light: [0.50, 0.35] };
-  const [a1, a2] = alphas[style] || alphas.dark;
-  const ov = ctx.createLinearGradient(0, 0, 0, H);
-  ov.addColorStop(0, `rgba(4,18,10,${a1})`);
-  ov.addColorStop(1, `rgba(4,18,10,${a2})`);
-  ctx.fillStyle = ov; ctx.fillRect(0, 0, W, H);
-}
-
-function statCard(ctx, x, y, val, lbl, sub, valColor = ORANGE) {
-  const CW = 230, CH = 120;
-  card(ctx, x, y, CW, CH, 12);
-  ctx.fillStyle = valColor;
-  ctx.font = 'bold 54px Roboto';
-  ctx.textAlign = 'center';
-  ctx.fillText(String(val), x + CW / 2, y + 62);
-  ctx.fillStyle = TEXT_LIGHT;
-  ctx.font = '700 13px Roboto';
-  ctx.fillText(lbl, x + CW / 2, y + 86);
-  ctx.fillStyle = TEXT_FAINT;
-  ctx.font = '400 12px Roboto';
-  ctx.fillText(sub, x + CW / 2, y + 106);
-  ctx.textAlign = 'left';
-}
+app.get('/health', (req, res) => res.json({ ok: true, version: 'ideogram-flyer-v2' }));
 
 // ═══════════════════════════════════════════════════════════════════
-// 1. JOB SPOTLIGHT
-// Layout: pill + headline (left), 3 job rows (left), stat box (right)
+// FLYER PROMPTS — full design described per post type
+// Ideogram renders the complete flyer with readable text
+// WorkDey brand: palm green (#0a8508) + orange (#f7a814)
 // ═══════════════════════════════════════════════════════════════════
-async function drawJobSpotlight(ctx, d, bg) {
-  await drawBg(ctx, bg); accentBar(ctx);
-  pill(ctx, 60, 46, 'HOT JOBS THIS WEEK', ORANGE, '#1a1a1a');
 
-  ctx.fillStyle = WHITE; ctx.font = 'bold 58px Roboto';
-  ctx.fillText(`${d.newJobs || 47}+ New Jobs This Week`, 60, 158);
-  ctx.fillStyle = ORANGE; ctx.font = '700 28px Roboto';
-  ctx.fillText(`${(d.topCategory?.name || 'Sales')} leads with ${d.topCategory?.count || 12}+ openings`, 60, 198);
+// Shared brand + style instruction appended to every prompt
+const BRAND = `Professional corporate social media flyer design, portrait orientation. 
+WorkDey brand colors: deep palm green and vibrant orange accents. 
+Modern clean typography, bold sans-serif headlines, generous spacing, premium quality.
+Include the text "WorkDey" as a logo in palm green and orange at the bottom, with "workdey.work" beneath it.
+High-end design like a flyer from a top African tech startup. Sharp, polished, professional.
+NOT cluttered. Readable text. Award-winning graphic design.`;
 
-  const jobs = (d.topJobs || []).slice(0, 3);
-  const jColors = [ORANGE, GREEN, '#2557a7'];
-  jobs.forEach((j, i) => {
-    const ry = 228 + i * 88;
-    card(ctx, 60, ry, 710, 74, 10);
-    ctx.fillStyle = jColors[i]; ctx.fillRect(60, ry, 5, 74);
-    ctx.fillStyle = WHITE; ctx.font = '700 21px Roboto';
-    ctx.fillText((j.title || '—').slice(0, 40), 86, ry + 32);
-    ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 15px Roboto';
-    ctx.fillText(`${j.city || ''}${j.salary_label ? '  ·  ' + j.salary_label : ''}`, 86, ry + 56);
-  });
+function pick(arr, seed) { return arr[seed % arr.length]; }
 
-  // Right stat box
-  card(ctx, 834, 228, 306, 170, 14);
-  ctx.fillStyle = ORANGE; ctx.font = 'bold 70px Roboto';
-  ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 4200), 987, 316);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '700 15px Roboto';
-  ctx.fillText('ACTIVE JOBS', 987, 346);
-  ctx.fillStyle = TEXT_FAINT; ctx.font = '400 13px Roboto';
-  ctx.fillText(`${d.totalCos || 820} companies hiring`, 987, 368);
-  ctx.textAlign = 'left';
-
-  footer(ctx);
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// 2. MARKET INSIGHT
-// Layout: pill + title, 5 horizontal bar chart rows, right stat box
-// ═══════════════════════════════════════════════════════════════════
-async function drawMarketInsight(ctx, d, bg) {
-  await drawBg(ctx, bg); accentBar(ctx);
-  pill(ctx, 60, 46, 'MARKET INTELLIGENCE', '#2557a7', WHITE);
-
-  ctx.fillStyle = WHITE; ctx.font = 'bold 48px Roboto';
-  ctx.fillText('Top In-Demand Skills', 60, 156);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '500 20px Roboto';
-  ctx.fillText(`Cameroon & Nigeria  ·  ${new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}`, 60, 192);
-
-  const cats = (d.topCategories?.length ? d.topCategories : [
-    { name: 'Sales', count: 142 }, { name: 'Accounting', count: 118 },
-    { name: 'Driver', count: 94 }, { name: 'IT Support', count: 76 }, { name: 'Marketing', count: 58 }
-  ]).slice(0, 5);
-  const maxC = Math.max(...cats.map(c => c.count), 1);
-  const bColors = [ORANGE, GREEN, '#2557a7', '#cc8000', '#0d6e0d'];
-
-  cats.forEach((c, i) => {
-    const ry = 224 + i * 56;
-    const bw = Math.round((c.count / maxC) * 480);
-    ctx.fillStyle = WHITE; ctx.font = '600 16px Roboto';
-    ctx.fillText(c.name, 60, ry + 20);
-    roundRect(ctx, 230, ry, bw, 28, 5);
-    ctx.fillStyle = bColors[i]; ctx.globalAlpha = 0.88; ctx.fill(); ctx.globalAlpha = 1;
-    ctx.fillStyle = ORANGE; ctx.font = '700 14px Roboto';
-    ctx.fillText(String(c.count), 230 + bw + 10, ry + 20);
-  });
-
-  card(ctx, 834, 224, 306, 170, 14);
-  ctx.fillStyle = ORANGE; ctx.font = 'bold 70px Roboto';
-  ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 4200), 987, 312);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '700 15px Roboto';
-  ctx.fillText('ACTIVE JOBS', 987, 342);
-  ctx.fillStyle = TEXT_FAINT; ctx.font = '400 13px Roboto';
-  ctx.fillText(`${d.weekApps || 380} applications/week`, 987, 364);
-  ctx.textAlign = 'left';
-
-  footer(ctx);
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// 3. SEEKER TIP
-// Layout: pill, big quote, tip headline, sub text, AI coach promo box
-// ═══════════════════════════════════════════════════════════════════
-async function drawSeekerTip(ctx, d, bg) {
-  await drawBg(ctx, bg, 'medium'); accentBar(ctx);
-  pill(ctx, 60, 46, 'CAREER TIP OF THE WEEK', GREEN, WHITE);
-
-  // Big decorative quote
-  ctx.fillStyle = ORANGE; ctx.globalAlpha = 0.14;
-  ctx.font = 'bold 200px Roboto'; ctx.fillText('"', 46, 310);
-  ctx.globalAlpha = 1;
-
-  const tip = d.tipHeadline || 'One page. Clear skills. WhatsApp number.';
-  ctx.fillStyle = WHITE; ctx.font = 'bold 48px Roboto';
-  // Word wrap tip
-  const words = tip.split(' '); let line = '', ty = 260;
-  words.forEach(w => {
-    const t = line + w + ' ';
-    if (ctx.measureText(t).width > 900 && line) {
-      ctx.fillText(line.trim(), 60, ty); line = w + ' '; ty += 58;
-    } else line = t;
-  });
-  ctx.fillText(line.trim(), 60, ty); ty += 42;
-
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 22px Roboto';
-  ctx.fillText((d.tipSub || '').slice(0, 72), 60, ty + 10);
-
-  // AI Coach promo
-  card(ctx, 60, ty + 36, 580, 68, 10);
-  ctx.strokeStyle = ORANGE; ctx.globalAlpha = 0.38;
-  roundRect(ctx, 60, ty + 36, 580, 68, 10); ctx.stroke(); ctx.globalAlpha = 1;
-  ctx.fillStyle = ORANGE; ctx.font = '700 16px Roboto';
-  ctx.fillText('Practice with WorkDey AI Interview Coach', 82, ty + 60);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 14px Roboto';
-  ctx.fillText('Free · workdey.work', 82, ty + 82);
-
-  footer(ctx);
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// 4. COMPANY SPOTLIGHT
-// Layout: pill, company name+avatar (top), open roles card, CTA, stat box
-// ═══════════════════════════════════════════════════════════════════
-async function drawCompanySpotlight(ctx, d, bg) {
-  await drawBg(ctx, bg); accentBar(ctx);
-  pill(ctx, 60, 46, 'COMPANY SPOTLIGHT', ORANGE, '#1a1a1a');
-
-  const co = d.topCompany || { name: 'Brasserie du Cameroun', country: 'CM', count: 12 };
-  const country = co.country === 'NG' ? 'Nigeria' : 'Cameroon';
-  const ini = (co.name || 'CO').split(/\s+/).map(w => (w[0] || '')).slice(0, 2).join('').toUpperCase();
-
-  // Avatar box
-  card(ctx, 60, 116, 108, 108, 14);
-  ctx.strokeStyle = ORANGE; ctx.lineWidth = 2;
-  roundRect(ctx, 60, 116, 108, 108, 14); ctx.stroke();
-  ctx.fillStyle = ORANGE; ctx.font = 'bold 46px Roboto';
-  ctx.textAlign = 'center'; ctx.fillText(ini, 114, 186); ctx.textAlign = 'left';
-
-  ctx.fillStyle = WHITE; ctx.font = 'bold 48px Roboto';
-  ctx.fillText((co.name || '').slice(0, 26), 192, 170);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '500 20px Roboto';
-  ctx.fillText(`${country}  ·  Verified Employer [V]`, 192, 204);
-
-  // Open roles card
-  card(ctx, 60, 248, 480, 126, 14);
-  ctx.strokeStyle = ORANGE; ctx.globalAlpha = 0.3;
-  roundRect(ctx, 60, 248, 480, 126, 14); ctx.stroke(); ctx.globalAlpha = 1;
-  ctx.fillStyle = ORANGE; ctx.font = 'bold 84px Roboto';
-  ctx.textAlign = 'center'; ctx.fillText(String(co.count || 12), 180, 340); ctx.textAlign = 'left';
-  ctx.fillStyle = WHITE; ctx.font = '700 26px Roboto';
-  ctx.fillText('Open', 310, 304); ctx.fillText('Positions', 310, 338);
-
-  // CTA button
-  roundRect(ctx, 60, 402, 360, 60, 30);
-  ctx.fillStyle = GREEN; ctx.fill();
-  ctx.fillStyle = WHITE; ctx.font = '800 20px Roboto';
-  ctx.textAlign = 'center'; ctx.fillText('Apply at workdey.work →', 240, 439); ctx.textAlign = 'left';
-
-  card(ctx, 834, 248, 306, 170, 14);
-  ctx.fillStyle = ORANGE; ctx.font = 'bold 70px Roboto';
-  ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 4200), 987, 336);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '700 15px Roboto'; ctx.fillText('JOBS AVAILABLE', 987, 364);
-  ctx.fillStyle = TEXT_FAINT; ctx.font = '400 13px Roboto'; ctx.fillText(`${d.totalCos || 820}+ employers`, 987, 386);
-  ctx.textAlign = 'left';
-
-  footer(ctx);
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// 5. PLATFORM STATS
-// Layout: pill + headline, 4 stat cards in a row, 1 hero stat below
-// ═══════════════════════════════════════════════════════════════════
-async function drawPlatformStats(ctx, d, bg) {
-  await drawBg(ctx, bg); accentBar(ctx);
-  pill(ctx, 60, 46, 'WORKDEY THIS WEEK', GREEN, WHITE);
-
-  ctx.fillStyle = WHITE; ctx.font = 'bold 52px Roboto';
-  ctx.fillText('The Numbers Speak', 60, 154);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '500 22px Roboto';
-  ctx.fillText('Real impact. Real jobs. Real Africa.', 60, 192);
-
-  // 4 stat cards in a single row — each 246px wide with 16px gaps
-  const cards4 = [
-    { val: d.weekApps || 380,  lbl: 'APPLICATIONS',  sub: 'this week',   col: ORANGE },
-    { val: d.newJobs || 47,   lbl: 'JOBS POSTED',   sub: 'this week',   col: GREEN  },
-    { val: d.weekHires || 18,   lbl: 'PEOPLE HIRED',  sub: 'this week',   col: ORANGE },
-    { val: `${d.totalCos || 820}+`, lbl: 'EMPLOYERS',  sub: 'on platform', col: GREEN  },
+function buildFlyerPrompt(postType, d, seed) {
+  // Visual scene variety — rotates so images differ
+  const scenes = [
+    "with a confident young African professional smiling in a modern office",
+    "with a vibrant African city skyline at golden hour in the background",
+    "with diverse African professionals collaborating in a bright workspace",
+    "with a clean geometric abstract background in green and orange",
+    "with a modern African business district and glass towers",
+    "with an African woman in business attire looking confident and successful",
+    "with dynamic motion graphics and bold color blocks",
   ];
-  const cw = 246, gap = 16;
-  cards4.forEach((c, i) => {
-    statCard(ctx, 60 + i * (cw + gap), 232, c.val, c.lbl, c.sub, c.col);
-  });
+  const scene = pick(scenes, seed);
 
-  // Hero total jobs bar
-  card(ctx, 60, 378, 1080, 116, 14);
-  ctx.fillStyle = ORANGE; ctx.font = 'bold 80px Roboto';
-  ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 4200), 370, 456);
-  ctx.fillStyle = WHITE; ctx.font = '700 22px Roboto'; ctx.fillText('TOTAL ACTIVE JOBS', 560, 430);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 17px Roboto'; ctx.fillText('Cameroon  ·  Nigeria  ·  Africa', 560, 462);
-  ctx.textAlign = 'left';
+  const prompts = {
+    job_spotlight: `A bold job advertisement flyer headlined "NEW JOBS THIS WEEK" in large letters, with subtext "${d.newJobs}+ Opportunities in Cameroon & Nigeria", ${scene}. Show "${d.topCategory?.name || 'Sales'} · Accounting · IT · Marketing" as category tags. ${BRAND}`,
 
-  footer(ctx);
+    market_insight: `A sleek data report flyer headlined "AFRICAN JOB MARKET REPORT 2026", with subtext "${d.totalJobs}+ Active Jobs Across Cameroon & Nigeria", featuring elegant bar chart graphics, ${scene}. Reference "Source: WorkDey Data". ${BRAND}`,
+
+    company_spotlight: `A premium company recruitment flyer headlined "NOW HIRING", with subtext "${d.topCompany?.count || 12} Open Positions" and "${d.topCompany?.country === 'NG' ? 'Nigeria' : 'Cameroon'}", ${scene}. Professional corporate aesthetic. ${BRAND}`,
+
+    platform_stats: `An energetic milestone celebration flyer headlined "THE NUMBERS SPEAK", showing big bold statistics "${d.weekApps} Applications · ${d.newJobs} New Jobs · ${d.weekHires} Hired This Week", ${scene}. Celebratory momentum design. ${BRAND}`,
+
+    industry_report: `A professional industry analysis flyer headlined "AFRICA'S WORKFORCE RISING", with subtext "12 Million New Jobs Needed Every Year", featuring upward trending graphics, ${scene}. Reference "World Bank · ILO · AfDB". Authoritative report aesthetic. ${BRAND}`,
+
+    employer_tip: `A clean tip-of-the-week flyer headlined "HIRING SMARTER", with subtext "Post jobs with salary ranges — get 40% more applications", ${scene}. Professional advice card design. ${BRAND}`,
+
+    weekly_roundup: `A vibrant weekly summary flyer headlined "THIS WEEK ON WORKDEY", showing "${d.weekApps} Applications · ${d.newJobs} New Jobs · ${d.weekHires} Hires", ${scene}. Newsletter highlight aesthetic. ${BRAND}`,
+
+    seeker_tip: `An inspiring career tip flyer with a large quote "${(d.tipHeadline || 'Apply within 24 hours').slice(0, 50)}", subtext "Career tips for African professionals", ${scene}. Motivational quote card design. ${BRAND}`,
+
+    success_story: `An emotional success story flyer headlined "FROM SEEKER TO HIRED", with subtext "Real stories from the WorkDey community", ${scene} showing a happy celebrating African professional. Warm inspiring design. ${BRAND}`,
+
+    career_advice: `An editorial career advice flyer headlined "${(d.article?.title || 'Land Your Dream Job').slice(0, 40)}", with a "Career Tips" category tag, ${scene}. Magazine feature aesthetic. ${BRAND}`,
+
+    employer_pitch: `A persuasive employer flyer headlined "STILL HIRING ON WHATSAPP?", with subtext "${d.totalCos}+ companies switched to WorkDey", ${scene}. Bold comparison advertising design. ${BRAND}`,
+
+    gig_economy: `A dynamic gig economy flyer headlined "EARN DAILY. WORK FLEXIBLY.", with subtext "Africa's gig economy is booming", ${scene} showing an energetic young African gig worker. Vibrant modern design. ${BRAND}`,
+
+    youth_employment: `An uplifting youth employment flyer headlined "AFRICA'S YOUNG WORKFORCE", with subtext "60% of Africa is under 25", ${scene} showing optimistic young African graduates. Reference "UN SDG Goal 8". Hopeful inspiring design. ${BRAND}`,
+
+    salary_insight: `A clean salary data flyer headlined "${(d.salary?.role || 'Accountant').toUpperCase()} SALARIES", showing "Cameroon: ${d.salary?.cm || '150,000-300,000 XAF'}" and "Nigeria: ${d.salary?.ng || '180,000-350,000 NGN'}", ${scene}. Professional data card design. ${BRAND}`,
+  };
+
+  return prompts[postType] || prompts.platform_stats;
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 6. CAREER ADVICE
-// Layout: category pill, article title (word-wrapped), divider, CTA, stat box
+// GENERATE FLYER VIA IDEOGRAM (best text rendering)
 // ═══════════════════════════════════════════════════════════════════
-async function drawCareerAdvice(ctx, d, bg) {
-  await drawBg(ctx, bg, 'medium'); accentBar(ctx);
+async function generateFlyer(postType, d, seed) {
+  const prompt = buildFlyerPrompt(postType, d, seed);
 
-  const a = d.article || { title: 'How to Write a CV That Gets You Hired in Cameroon', cat: 'Career Tips', catColor: GREEN };
-  pill(ctx, 60, 46, `${(a.cat || 'CAREER TIPS').toUpperCase()}`, a.catColor || GREEN, WHITE);
-
-  ctx.fillStyle = WHITE; ctx.font = 'bold 52px Roboto';
-  const words = (a.title || '').split(' ');
-  let line = '', ty = 160, lines = 0;
-  words.forEach(w => {
-    const t = line + w + ' ';
-    if (ctx.measureText(t).width > 860 && line) {
-      ctx.fillText(line.trim(), 60, ty); line = w + ' '; ty += 62; lines++;
-    } else line = t;
-  });
-  if (line) { ctx.fillText(line.trim(), 60, ty); ty += 62; lines++; }
-
-  ty += 16;
-  ctx.strokeStyle = ORANGE; ctx.globalAlpha = 0.5; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(60, ty); ctx.lineTo(640, ty); ctx.stroke(); ctx.globalAlpha = 1;
-  ty += 36;
-
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 22px Roboto';
-  ctx.fillText('More career tips →', 60, ty);
-  const cw2 = ctx.measureText('More career tips →').width;
-  ctx.fillStyle = ORANGE; ctx.font = '700 22px Roboto';
-  ctx.fillText('  workdey.work/blog', 60 + cw2, ty);
-
-  card(ctx, 834, 200, 306, 170, 14);
-  ctx.fillStyle = ORANGE; ctx.font = 'bold 70px Roboto';
-  ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 4200), 987, 292);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '700 15px Roboto'; ctx.fillText('JOBS AVAILABLE', 987, 320);
-  ctx.fillStyle = TEXT_FAINT; ctx.font = '400 13px Roboto'; ctx.fillText('workdey.work', 987, 342);
-  ctx.textAlign = 'left';
-
-  footer(ctx);
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// 7. EMPLOYER PITCH
-// Layout: pill + headline, left card (cons), VS divider, right card (pros), bottom CTA
-// ═══════════════════════════════════════════════════════════════════
-async function drawEmployerPitch(ctx, d, bg) {
-  await drawBg(ctx, bg); accentBar(ctx);
-  pill(ctx, 60, 46, 'ATTENTION EMPLOYERS', ORANGE, '#1a1a1a');
-
-  ctx.fillStyle = WHITE; ctx.font = 'bold 50px Roboto';
-  ctx.fillText('Still Hiring via WhatsApp Groups?', 60, 146);
-
-  // Left card — problem
-  roundRect(ctx, 60, 172, 430, 228, 12);
-  ctx.fillStyle = 'rgba(180,30,30,0.18)'; ctx.fill();
-  ctx.strokeStyle = 'rgba(220,60,60,0.38)'; ctx.lineWidth = 1; ctx.stroke();
-  ctx.fillStyle = '#ff8a8a'; ctx.font = '800 14px Roboto';
-  ctx.textAlign = 'center'; ctx.fillText('WHATSAPP GROUPS', 275, 200); ctx.textAlign = 'left';
-  ['✗  Unverified candidates', '✗  No skill filtering', '✗  CVs lost in forwards', '✗  No pipeline tracking', '✗  Spam and fake applicants'].forEach((t, i) => {
-    ctx.fillStyle = '#ffbbbb'; ctx.font = '400 17px Roboto';
-    ctx.fillText(t, 82, 236 + i * 34);
+  const res = await fetch('https://fal.run/fal-ai/ideogram/v2', {
+    method: 'POST',
+    headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt,
+      aspect_ratio: '3:4',          // portrait
+      expand_prompt: true,           // Ideogram enhances the prompt
+      style: 'design',               // design style = best for flyers/posters
+      num_images: 1,
+    }),
   });
 
-  // VS
-  ctx.fillStyle = ORANGE; ctx.font = 'bold 30px Roboto';
-  ctx.textAlign = 'center'; ctx.fillText('VS', 580, 292); ctx.textAlign = 'left';
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Ideogram error ${res.status}: ${err}`);
+  }
 
-  // Right card — solution
-  roundRect(ctx, 710, 172, 430, 228, 12);
-  ctx.fillStyle = 'rgba(10,133,8,0.18)'; ctx.fill();
-  ctx.strokeStyle = 'rgba(10,133,8,0.38)'; ctx.lineWidth = 1; ctx.stroke();
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '800 14px Roboto';
-  ctx.textAlign = 'center'; ctx.fillText('WORKDEY', 925, 200); ctx.textAlign = 'left';
-  ['✓  Verified profiles + CVs', '✓  Skills filtering built in', '✓  Full pipeline dashboard', '✓  WhatsApp integrated', `✓  ${d.totalCos || 820}+ companies already use it`].forEach((t, i) => {
-    ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 17px Roboto';
-    ctx.fillText(t, 732, 236 + i * 34);
-  });
+  const data = await res.json();
+  if (!data.images || !data.images[0] || !data.images[0].url) {
+    throw new Error('No image from Ideogram: ' + JSON.stringify(data).slice(0, 200));
+  }
 
-  // Bottom CTA
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 20px Roboto';
-  ctx.fillText('Post your first job ', 60, 438);
-  const pw2 = ctx.measureText('Post your first job ').width;
-  ctx.fillStyle = ORANGE; ctx.font = '800 20px Roboto';
-  ctx.fillText('completely free', 60 + pw2, 438);
-  const fw2 = ctx.measureText('completely free').width;
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 20px Roboto';
-  ctx.fillText('  →  workdey.work', 60 + pw2 + fw2, 438);
-
-  // Stats bar
-  card(ctx, 60, 464, 1080, 66, 10);
-  const stats = [`${d.totalJobs || 4200} active jobs`, `${d.totalCos || 820} employers`, `${d.weekApps || 380} applications this week`];
-  stats.forEach((s, i) => {
-    ctx.fillStyle = i % 2 === 0 ? ORANGE : WHITE;
-    ctx.font = '700 18px Roboto';
-    ctx.textAlign = 'center';
-    ctx.fillText(s, 200 + i * 340, 503);
-  });
-  ctx.textAlign = 'left';
-
-  footer(ctx);
+  // Download the flyer
+  const imgRes = await fetch(data.images[0].url);
+  if (!imgRes.ok) throw new Error('Failed to download flyer');
+  const buf = await imgRes.buffer();
+  return { bytes: buf, url: data.images[0].url };
 }
 
 // ═══════════════════════════════════════════════════════════════════
 // MAIN ENDPOINT
 // ═══════════════════════════════════════════════════════════════════
-
-// ─── NEW CARD TYPES (reuse existing layouts with different styling) ───
-
-async function drawIndustryReport(ctx, d, bg) {
-  // Same as market_insight but with "INDUSTRY REPORT" pill and World Bank reference
-  await drawBg(ctx, bg); accentBar(ctx);
-  pill(ctx, 60, 46, 'INDUSTRY REPORT', '#7c3aed', WHITE);
-  ctx.fillStyle = WHITE; ctx.font = 'bold 46px Roboto';
-  ctx.fillText('African Job Market', 60, 154);
-  ctx.fillStyle = '#f7a814'; ctx.font = 'bold 46px Roboto';
-  ctx.fillText('Sector Analysis 2026', 60, 210);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 19px Roboto';
-  ctx.fillText('Source: World Bank · ILO · African Development Bank · WorkDey', 60, 248);
-
-  const cats = (d.topCategories?.length ? d.topCategories : [
-    { name: 'Sales & Marketing', count: 142 }, { name: 'Finance & Accounting', count: 118 },
-    { name: 'Transport & Logistics', count: 94 }, { name: 'IT & Technology', count: 76 }, { name: 'Healthcare', count: 58 }
-  ]).slice(0, 5);
-  const maxC = Math.max(...cats.map(c => c.count), 1);
-  const bColors = [ORANGE, GREEN, '#7c3aed', '#cc8000', '#0d6e0d'];
-  cats.forEach((c, i) => {
-    const ry = 278 + i * 52;
-    const bw = Math.round((c.count / maxC) * 460);
-    ctx.fillStyle = WHITE; ctx.font = '600 15px Roboto';
-    ctx.fillText(c.name, 60, ry + 19);
-    roundRect(ctx, 300, ry, bw, 26, 5);
-    ctx.fillStyle = bColors[i]; ctx.globalAlpha = 0.88; ctx.fill(); ctx.globalAlpha = 1;
-    ctx.fillStyle = ORANGE; ctx.font = '700 13px Roboto';
-    ctx.fillText(String(c.count) + '+ roles', 300 + bw + 10, ry + 19);
-  });
-
-  card(ctx, 834, 248, 306, 160, 14);
-  ctx.fillStyle = ORANGE; ctx.font = 'bold 64px Roboto';
-  ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 4200), 987, 314);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '700 14px Roboto';
-  ctx.fillText('ACTIVE JOBS', 987, 342);
-  ctx.fillStyle = TEXT_FAINT; ctx.font = '400 12px Roboto';
-  ctx.fillText('Cameroon + Nigeria', 987, 362);
-  ctx.textAlign = 'left';
-  footer(ctx);
-}
-
-async function drawEmployerTip(ctx, d, bg) {
-  await drawBg(ctx, bg, 'medium'); accentBar(ctx);
-  pill(ctx, 60, 46, 'EMPLOYER TIP', '#cc8000', WHITE);
-  ctx.fillStyle = WHITE; ctx.font = 'bold 50px Roboto';
-  ctx.fillText('Hiring Smarter in Africa', 60, 156);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 21px Roboto';
-  ctx.fillText('One tip every week for HR managers & employers', 60, 196);
-
-  // Tip box
-  card(ctx, 60, 228, 1080, 190, 14);
-  ctx.strokeStyle = ORANGE; ctx.globalAlpha = 0.3;
-  roundRect(ctx, 60, 228, 1080, 190, 14); ctx.stroke(); ctx.globalAlpha = 1;
-  ctx.fillStyle = ORANGE; ctx.font = 'bold 28px Roboto';
-  ctx.fillText('This week:', 88, 272);
-  ctx.fillStyle = WHITE; ctx.font = 'bold 22px Roboto';
-  const tipLines = ['Post jobs with a salary range — applications increase by 40%.', 'Candidates in Cameroon and Nigeria prioritize transparency in compensation.', 'WorkDey shows salary on every listing. Start there.'];
-  tipLines.forEach((l, i) => {
-    ctx.fillStyle = i === 0 ? WHITE : TEXT_LIGHT;
-    ctx.font = i === 0 ? 'bold 21px Roboto' : '400 19px Roboto';
-    ctx.fillText(l, 88, 308 + i * 34);
-  });
-
-  // Stats
-  ctx.fillStyle = ORANGE; ctx.font = 'bold 22px Roboto';
-  ctx.fillText(`${d.totalCos || 820}+ employers`, 88, 440);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 18px Roboto';
-  ctx.fillText(' already use WorkDey to find verified candidates fast.', 88 + ctx.measureText(`${d.totalCos || 820}+ employers`).width, 440);
-  footer(ctx);
-}
-
-async function drawWeeklyRoundup(ctx, d, bg) {
-  await drawBg(ctx, bg); accentBar(ctx);
-  pill(ctx, 60, 46, 'WEEKLY ROUNDUP', GREEN, WHITE);
-  ctx.fillStyle = WHITE; ctx.font = 'bold 54px Roboto';
-  ctx.fillText('This Week on WorkDey', 60, 156);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 22px Roboto';
-  ctx.fillText(`${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`, 60, 194);
-
-  // 3 highlight cards side by side
-  const highlights = [
-    { val: String(d.weekApps || 380), lbl: 'Applications Sent', icon: '📨' },
-    { val: String(d.newJobs || 47),   lbl: 'New Jobs Posted',   icon: '💼' },
-    { val: String(d.weekHires || 18), lbl: 'People Hired',      icon: '🎉' },
-  ];
-  highlights.forEach((h, i) => {
-    const cx = 60 + i * 376;
-    card(ctx, cx, 228, 348, 160, 14);
-    ctx.fillStyle = i % 2 === 0 ? ORANGE : GREEN;
-    ctx.font = 'bold 62px Roboto';
-    ctx.textAlign = 'center'; ctx.fillText(h.val, cx + 174, 306); ctx.textAlign = 'left';
-    ctx.fillStyle = TEXT_LIGHT; ctx.font = '700 15px Roboto';
-    ctx.textAlign = 'center'; ctx.fillText(h.lbl.toUpperCase(), cx + 174, 334); ctx.textAlign = 'left';
-  });
-
-  ctx.fillStyle = WHITE; ctx.font = '400 19px Roboto';
-  ctx.fillText(`Total: ${d.totalJobs || 4200}+ active jobs · ${d.totalCos || 820}+ employers · Cameroon & Nigeria`, 60, 434);
-  footer(ctx);
-}
-
-async function drawSuccessStory(ctx, d, bg) {
-  await drawBg(ctx, bg, 'medium'); accentBar(ctx);
-  pill(ctx, 60, 46, 'SUCCESS STORY', ORANGE, '#1a1a1a');
-  ctx.fillStyle = WHITE; ctx.font = 'bold 50px Roboto';
-  ctx.fillText('From Job Seeker to Hired', 60, 154);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 21px Roboto';
-  ctx.fillText('Real stories from the WorkDey community', 60, 194);
-
-  // Quote card
-  card(ctx, 60, 222, 1080, 220, 14);
-  ctx.fillStyle = ORANGE; ctx.globalAlpha = 0.15;
-  ctx.font = 'bold 180px Roboto'; ctx.fillText('"', 70, 390);
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = WHITE; ctx.font = 'bold 24px Roboto';
-  ctx.fillText("I applied to 3 jobs on WorkDey on a Monday morning.", 100, 272);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 22px Roboto';
-  ctx.fillText("By Wednesday I had two callbacks. By Friday I was hired.", 100, 308);
-  ctx.fillStyle = TEXT_FAINT; ctx.font = '400 19px Roboto';
-  ctx.fillText("I had been looking for 4 months before that.", 100, 344);
-  ctx.fillStyle = ORANGE; ctx.font = '700 18px Roboto';
-  ctx.fillText('— Accountant, 28, Douala · Hired via WorkDey', 100, 398);
-
-  ctx.fillStyle = WHITE; ctx.font = '400 18px Roboto';
-  ctx.fillText(`Join ${d.totalJobs || 4200}+ job seekers finding opportunities on workdey.work`, 60, 478);
-  footer(ctx);
-}
-
-async function drawGigEconomy(ctx, d, bg) {
-  await drawBg(ctx, bg); accentBar(ctx);
-  pill(ctx, 60, 46, 'GIG ECONOMY', '#2557a7', WHITE);
-  ctx.fillStyle = WHITE; ctx.font = 'bold 56px Roboto';
-  ctx.fillText('Earn Daily. Work Flexibly.', 60, 158);
-  ctx.fillStyle = ORANGE; ctx.font = 'bold 38px Roboto';
-  ctx.fillText("Africa's Gig Economy is Booming", 60, 210);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 20px Roboto';
-  ctx.fillText('Over 85% of African workers participate in the informal/gig economy (World Bank)', 60, 248);
-
-  // 3 stats
-  const gigStats = [
-    { val: `${Math.round((d.totalJobs || 4200) * 0.4)}+`, lbl: 'Daily Gig Listings', sub: 'on WorkDey' },
-    { val: '24h', lbl: 'Average Time to Hire', sub: 'for gig roles' },
-    { val: `${d.totalCos || 820}+`, lbl: 'Verified Employers', sub: 'posting gig work' },
-  ];
-  gigStats.forEach((gs, i) => {
-    statCard(ctx, 60 + i * 376, 288, gs.val, gs.lbl, gs.sub, i % 2 === 0 ? ORANGE : GREEN);
-  });
-
-  ctx.fillStyle = WHITE; ctx.font = '400 19px Roboto';
-  ctx.fillText('Browse daily gig jobs across Cameroon and Nigeria at workdey.work', 60, 454);
-  footer(ctx);
-}
-
-async function drawYouthEmployment(ctx, d, bg) {
-  await drawBg(ctx, bg); accentBar(ctx);
-  pill(ctx, 60, 46, 'YOUTH & EMPLOYMENT', '#7c3aed', WHITE);
-  ctx.fillStyle = WHITE; ctx.font = 'bold 52px Roboto';
-  ctx.fillText("Africa's Young Workforce", 60, 154);
-  ctx.fillStyle = ORANGE; ctx.font = 'bold 36px Roboto';
-  ctx.fillText("60% of Africa is under 25 years old", 60, 202);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 19px Roboto';
-  ctx.fillText('Source: World Bank · African Development Bank · UN SDG Goal 8', 60, 238);
-
-  const youthStats = [
-    { val: '12M+', lbl: 'New workers/year', sub: 'enter Africa\'s workforce (World Bank)' },
-    { val: `${d.totalJobs || 4200}+`, lbl: 'Active Jobs', sub: 'on WorkDey today' },
-    { val: `${d.totalCos || 820}+`, lbl: 'Hiring Companies', sub: 'verified employers' },
-  ];
-  youthStats.forEach((ys, i) => {
-    statCard(ctx, 60 + i * 376, 272, ys.val, ys.lbl, ys.sub, i % 2 === 0 ? ORANGE : '#7c3aed');
-  });
-
-  // SDG badge
-  card(ctx, 60, 420, 700, 68, 10);
-  ctx.fillStyle = ORANGE; ctx.font = '700 17px Roboto';
-  ctx.fillText('WorkDey supports UN SDG Goal 8: Decent Work and Economic Growth', 82, 448);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 14px Roboto';
-  ctx.fillText("Connecting Africa’s youth with verified employment opportunities", 82, 470);
-  footer(ctx);
-}
-
-async function drawSalaryInsight(ctx, d, bg) {
-  await drawBg(ctx, bg); accentBar(ctx);
-  pill(ctx, 60, 46, 'SALARY INSIGHT', GREEN, WHITE);
-  const salary = d.salary || { role: 'Accountant', cm: '150,000–300,000 XAF', ng: '₦180,000–₦350,000' };
-  ctx.fillStyle = WHITE; ctx.font = 'bold 56px Roboto';
-  ctx.fillText(`${salary.role} Salaries in Africa`, 60, 156);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 21px Roboto';
-  ctx.fillText('Real data from WorkDey job listings · Updated weekly', 60, 196);
-
-  // Two big salary cards side by side
-  card(ctx, 60, 228, 520, 200, 14);
-  ctx.strokeStyle = '#ff9500'; ctx.globalAlpha = 0.3;
-  roundRect(ctx, 60, 228, 520, 200, 14); ctx.stroke(); ctx.globalAlpha = 1;
-  ctx.fillStyle = TEXT_FAINT; ctx.font = '800 13px Roboto'; ctx.textAlign = 'center';
-  ctx.fillText('CAMEROON', 320, 262); ctx.textAlign = 'left';
-  ctx.fillStyle = ORANGE; ctx.font = 'bold 42px Roboto';
-  ctx.textAlign = 'center'; ctx.fillText(salary.cm, 320, 326);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 16px Roboto';
-  ctx.fillText('per month', 320, 356);
-  ctx.fillStyle = TEXT_FAINT; ctx.font = '400 13px Roboto';
-  ctx.fillText('XAF · Market rate', 320, 400);
-  ctx.textAlign = 'left';
-
-  card(ctx, 620, 228, 520, 200, 14);
-  ctx.strokeStyle = GREEN; ctx.globalAlpha = 0.3;
-  roundRect(ctx, 620, 228, 520, 200, 14); ctx.stroke(); ctx.globalAlpha = 1;
-  ctx.fillStyle = TEXT_FAINT; ctx.font = '800 13px Roboto'; ctx.textAlign = 'center';
-  ctx.fillText('NIGERIA', 880, 262); ctx.textAlign = 'left';
-  ctx.fillStyle = GREEN; ctx.font = 'bold 42px Roboto';
-  ctx.textAlign = 'center'; ctx.fillText(salary.ng, 880, 326);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 16px Roboto';
-  ctx.fillText('per month', 880, 356);
-  ctx.fillStyle = TEXT_FAINT; ctx.font = '400 13px Roboto';
-  ctx.fillText('NGN · Market rate', 880, 400);
-  ctx.textAlign = 'left';
-
-  ctx.fillStyle = WHITE; ctx.font = '400 18px Roboto';
-  ctx.fillText(`Find ${salary.role} roles now at workdey.work  ·  ${d.totalJobs || 4200}+ active jobs`, 60, 472);
-  footer(ctx);
-}
-
-const DRAW_FNS = {
-  job_spotlight:    drawJobSpotlight,
-  market_insight:   drawMarketInsight,
-  seeker_tip:       drawSeekerTip,
-  company_spotlight: drawCompanySpotlight,
-  platform_stats:   drawPlatformStats,
-  career_advice:    drawCareerAdvice,
-  employer_pitch:   drawEmployerPitch,
-  industry_report:  drawIndustryReport,
-  employer_tip:     drawEmployerTip,
-  weekly_roundup:   drawWeeklyRoundup,
-  success_story:    drawSuccessStory,
-  gig_economy:      drawGigEconomy,
-  youth_employment: drawYouthEmployment,
-  salary_insight:   drawSalaryInsight,
-};
-
 app.post('/generate', async (req, res) => {
   const { post_type = 'platform_stats', data = {} } = req.body;
+  // Seed for visual variety — changes by hour
+  const seed = Math.floor(Date.now() / 3600000);
+
   try {
-    const canvas = createCanvas(W, H);
-    const ctx = canvas.getContext('2d');
-    const bg = await fetchBg(post_type);
-    const fn = DRAW_FNS[post_type] || drawPlatformStats;
-    await fn(ctx, data, bg);
-    const png = canvas.toBuffer('image/png');
+    const { bytes } = await generateFlyer(post_type, data, seed);
     res.set('Content-Type', 'image/png');
-    res.send(png);
+    res.send(bytes);
   } catch (e) {
-    console.error(e);
+    console.error('Generate error:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
 
-app.listen(PORT, () => console.log(`WorkDey Image Server on :${PORT}`));
+// Preview endpoint — returns the image URL instead of bytes (for testing)
+app.post('/preview', async (req, res) => {
+  const { post_type = 'platform_stats', data = {} } = req.body;
+  const seed = Math.floor(Date.now() / 3600000);
+  try {
+    const { url } = await generateFlyer(post_type, data, seed);
+    res.json({ url, post_type });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.listen(PORT, () => console.log(`WorkDey Flyer Server (Ideogram) on :${PORT}`));
