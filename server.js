@@ -29,49 +29,110 @@ app.get('/health', (req, res) => res.json({ ok: true, version: 'ideogram-flyer-v
 // WorkDey brand: palm green (#0a8508) + orange (#f7a814)
 // ═══════════════════════════════════════════════════════════════════
 
-// CRITICAL: AI text models only render SHORT text cleanly (2-5 words max).
-// So each flyer has ONE short headline + "WorkDey" logo. Everything else is VISUAL.
+// AI text models render 2-3 SHORT text elements cleanly. Use headline + one stat + tagline.
 
-const STYLE = `Professional social media flyer, portrait. Deep palm green and vibrant orange color scheme. 
-Bold modern minimal design, lots of clean space, premium African tech brand aesthetic. 
-The ONLY text in the image is the headline and a small "WorkDey" wordmark at the bottom. 
-No paragraphs, no body text, no small text, no fake text. Clean, readable, award-winning poster design.`;
+const STYLE = `Premium professional social media flyer, portrait orientation. 
+Deep palm green (#0a8508) and vibrant orange (#f7a814) brand colors. 
+Bold modern editorial design with strong visual hierarchy, generous spacing, premium African tech brand aesthetic like a Forbes Africa or top startup campaign. 
+Only render the few specified short text elements — no paragraphs, no fake body text, no gibberish text. 
+Every letter sharp and readable. Award-winning graphic design quality.`;
 
 function pick(arr, seed) { return arr[seed % arr.length]; }
 
 function buildFlyerPrompt(postType, d, seed) {
   const scenes = [
-    "a confident young African professional in a sharp suit smiling, modern office",
-    "a vibrant Lagos city skyline at golden hour, glass towers",
-    "diverse African professionals collaborating around a laptop, bright workspace",
-    "a clean geometric abstract composition with bold green and orange shapes",
-    "a successful African businesswoman in elegant attire, contemporary setting",
-    "an aerial view of a modern African business district at sunset",
-    "a dynamic split-color background with subtle motion graphics",
+    "a confident young African professional in a sharp suit smiling in a modern glass office",
+    "a stunning Lagos city skyline at golden hour with gleaming towers",
+    "diverse African professionals collaborating energetically in a bright modern workspace",
+    "a bold geometric abstract composition of green and orange shapes with depth",
+    "a successful African businesswoman in elegant professional attire, confident pose",
+    "a cinematic aerial view of a thriving African business district at sunset",
+    "an African tech worker at a sleek desk with city views behind them",
   ];
   const scene = pick(scenes, seed);
 
-  // Each flyer: ONE punchy headline only (2-5 words). Everything else is visual.
-  const headlines = {
-    job_spotlight:     `the large bold headline text "NEW JOBS THIS WEEK"`,
-    market_insight:    `the large bold headline text "JOB MARKET REPORT"`,
-    company_spotlight: `the large bold headline text "NOW HIRING"`,
-    platform_stats:    `the large bold headline text "${d.weekApps || 380} HIRED THIS WEEK"`,
-    industry_report:   `the large bold headline text "AFRICA IS HIRING"`,
-    employer_tip:      `the large bold headline text "HIRE SMARTER"`,
-    weekly_roundup:    `the large bold headline text "THIS WEEK ON WORKDEY"`,
-    seeker_tip:        `the large bold headline text "CAREER TIP"`,
-    success_story:     `the large bold headline text "HIRED!"`,
-    career_advice:     `the large bold headline text "GROW YOUR CAREER"`,
-    employer_pitch:    `the large bold headline text "POST JOBS FREE"`,
-    gig_economy:       `the large bold headline text "EARN DAILY"`,
-    youth_employment:  `the large bold headline text "AFRICA'S FUTURE"`,
-    salary_insight:    `the large bold headline text "KNOW YOUR WORTH"`,
+  // headline (2-4 words) + one big stat + a short tagline. All short = clean rendering.
+  const flyers = {
+    job_spotlight: {
+      headline: "NEW JOBS THIS WEEK",
+      stat: `${d.newJobs || 47}+`,
+      tagline: "Apply today on WorkDey",
+    },
+    market_insight: {
+      headline: "JOB MARKET REPORT",
+      stat: `${d.totalJobs || 4200}+`,
+      tagline: "Active jobs in Africa",
+    },
+    company_spotlight: {
+      headline: "NOW HIRING",
+      stat: `${d.topCompany?.count || 12}`,
+      tagline: "Open positions on WorkDey",
+    },
+    platform_stats: {
+      headline: "THE NUMBERS SPEAK",
+      stat: `${d.weekApps || 380}`,
+      tagline: "Applications this week",
+    },
+    industry_report: {
+      headline: "AFRICA IS HIRING",
+      stat: "12M+",
+      tagline: "New jobs needed yearly · World Bank",
+    },
+    employer_tip: {
+      headline: "HIRE SMARTER",
+      stat: "+40%",
+      tagline: "More applicants with WorkDey",
+    },
+    weekly_roundup: {
+      headline: "WEEK IN REVIEW",
+      stat: `${d.weekHires || 18}`,
+      tagline: "People hired this week",
+    },
+    seeker_tip: {
+      headline: "CAREER TIP",
+      stat: "4x",
+      tagline: "More callbacks · Apply early",
+    },
+    success_story: {
+      headline: "HIRED IN 5 DAYS",
+      stat: "",
+      tagline: "Real WorkDey success story",
+    },
+    career_advice: {
+      headline: "GROW YOUR CAREER",
+      stat: "",
+      tagline: "Free tips on WorkDey",
+    },
+    employer_pitch: {
+      headline: "POST JOBS FREE",
+      stat: `${d.totalCos || 820}+`,
+      tagline: "Companies trust WorkDey",
+    },
+    gig_economy: {
+      headline: "EARN DAILY",
+      stat: "85%",
+      tagline: "Of Africa works gig · World Bank",
+    },
+    youth_employment: {
+      headline: "AFRICA'S FUTURE",
+      stat: "60%",
+      tagline: "Under 25 · UN SDG Goal 8",
+    },
+    salary_insight: {
+      headline: `${(d.salary?.role || 'SALARY').toUpperCase()} PAY`,
+      stat: "",
+      tagline: "Know your worth on WorkDey",
+    },
   };
-  const headline = headlines[postType] || headlines.platform_stats;
 
-  return `A professional recruitment flyer featuring ${scene}, with ${headline} prominently displayed in clean bold sans-serif letters at the top, and a small "WorkDey" logo wordmark at the bottom. ${STYLE}`;
+  const f = flyers[postType] || flyers.platform_stats;
+  const statPart = f.stat ? `a huge bold number "${f.stat}" as the focal point, ` : "";
+
+  return `A premium recruitment campaign flyer featuring ${scene}. 
+Design includes: the bold headline "${f.headline}" at the top, ${statPart}the short tagline "${f.tagline}", and a clean "WorkDey" logo wordmark at the bottom in green and orange. 
+${STYLE}`;
 }
+
 
 
 // ═══════════════════════════════════════════════════════════════════
