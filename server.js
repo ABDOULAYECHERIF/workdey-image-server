@@ -194,7 +194,7 @@ function statCard(ctx, x, y, val, lbl, sub, valColor = ORANGE) {
 // ═══════════════════════════════════════════════════════════════════
 async function drawJobSpotlight(ctx, d, bg) {
   await drawBg(ctx, bg); accentBar(ctx);
-  pill(ctx, 60, 46, '🔥  HOT JOBS THIS WEEK', ORANGE, '#1a1a1a');
+  pill(ctx, 60, 46, 'HOT JOBS THIS WEEK', ORANGE, '#1a1a1a');
 
   ctx.fillStyle = WHITE; ctx.font = 'bold 58px Roboto';
   ctx.fillText(`${d.newJobs || 47}+ New Jobs This Week`, 60, 158);
@@ -232,7 +232,7 @@ async function drawJobSpotlight(ctx, d, bg) {
 // ═══════════════════════════════════════════════════════════════════
 async function drawMarketInsight(ctx, d, bg) {
   await drawBg(ctx, bg); accentBar(ctx);
-  pill(ctx, 60, 46, '📊  MARKET INTELLIGENCE', '#2557a7', WHITE);
+  pill(ctx, 60, 46, 'MARKET INTELLIGENCE', '#2557a7', WHITE);
 
   ctx.fillStyle = WHITE; ctx.font = 'bold 48px Roboto';
   ctx.fillText('Top In-Demand Skills', 60, 156);
@@ -275,11 +275,11 @@ async function drawMarketInsight(ctx, d, bg) {
 // ═══════════════════════════════════════════════════════════════════
 async function drawSeekerTip(ctx, d, bg) {
   await drawBg(ctx, bg, 'medium'); accentBar(ctx);
-  pill(ctx, 60, 46, '💡  CAREER TIP OF THE WEEK', GREEN, WHITE);
+  pill(ctx, 60, 46, 'CAREER TIP OF THE WEEK', GREEN, WHITE);
 
   // Big decorative quote
   ctx.fillStyle = ORANGE; ctx.globalAlpha = 0.14;
-  ctx.font = 'bold 200px Roboto'; ctx.fillText('“', 46, 310);
+  ctx.font = 'bold 200px Roboto'; ctx.fillText('"', 46, 310);
   ctx.globalAlpha = 1;
 
   const tip = d.tipHeadline || 'One page. Clear skills. WhatsApp number.';
@@ -302,7 +302,7 @@ async function drawSeekerTip(ctx, d, bg) {
   ctx.strokeStyle = ORANGE; ctx.globalAlpha = 0.38;
   roundRect(ctx, 60, ty + 36, 580, 68, 10); ctx.stroke(); ctx.globalAlpha = 1;
   ctx.fillStyle = ORANGE; ctx.font = '700 16px Roboto';
-  ctx.fillText('🤖  Practice with WorkDey AI Interview Coach', 82, ty + 60);
+  ctx.fillText('Practice with WorkDey AI Interview Coach', 82, ty + 60);
   ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 14px Roboto';
   ctx.fillText('Free · workdey.work', 82, ty + 82);
 
@@ -315,7 +315,7 @@ async function drawSeekerTip(ctx, d, bg) {
 // ═══════════════════════════════════════════════════════════════════
 async function drawCompanySpotlight(ctx, d, bg) {
   await drawBg(ctx, bg); accentBar(ctx);
-  pill(ctx, 60, 46, '🏢  COMPANY SPOTLIGHT', ORANGE, '#1a1a1a');
+  pill(ctx, 60, 46, 'COMPANY SPOTLIGHT', ORANGE, '#1a1a1a');
 
   const co = d.topCompany || { name: 'Brasserie du Cameroun', country: 'CM', count: 12 };
   const country = co.country === 'NG' ? 'Nigeria' : 'Cameroon';
@@ -331,7 +331,7 @@ async function drawCompanySpotlight(ctx, d, bg) {
   ctx.fillStyle = WHITE; ctx.font = 'bold 48px Roboto';
   ctx.fillText((co.name || '').slice(0, 26), 192, 170);
   ctx.fillStyle = TEXT_LIGHT; ctx.font = '500 20px Roboto';
-  ctx.fillText(`${country}  ·  Verified Employer ✓`, 192, 204);
+  ctx.fillText(`${country}  ·  Verified Employer [V]`, 192, 204);
 
   // Open roles card
   card(ctx, 60, 248, 480, 126, 14);
@@ -364,7 +364,7 @@ async function drawCompanySpotlight(ctx, d, bg) {
 // ═══════════════════════════════════════════════════════════════════
 async function drawPlatformStats(ctx, d, bg) {
   await drawBg(ctx, bg); accentBar(ctx);
-  pill(ctx, 60, 46, '📈  WORKDEY THIS WEEK', GREEN, WHITE);
+  pill(ctx, 60, 46, 'WORKDEY THIS WEEK', GREEN, WHITE);
 
   ctx.fillStyle = WHITE; ctx.font = 'bold 52px Roboto';
   ctx.fillText('The Numbers Speak', 60, 154);
@@ -402,7 +402,7 @@ async function drawCareerAdvice(ctx, d, bg) {
   await drawBg(ctx, bg, 'medium'); accentBar(ctx);
 
   const a = d.article || { title: 'How to Write a CV That Gets You Hired in Cameroon', cat: 'Career Tips', catColor: GREEN };
-  pill(ctx, 60, 46, `📚  ${(a.cat || 'CAREER TIPS').toUpperCase()}`, a.catColor || GREEN, WHITE);
+  pill(ctx, 60, 46, `${(a.cat || 'CAREER TIPS').toUpperCase()}`, a.catColor || GREEN, WHITE);
 
   ctx.fillStyle = WHITE; ctx.font = 'bold 52px Roboto';
   const words = (a.title || '').split(' ');
@@ -442,7 +442,7 @@ async function drawCareerAdvice(ctx, d, bg) {
 // ═══════════════════════════════════════════════════════════════════
 async function drawEmployerPitch(ctx, d, bg) {
   await drawBg(ctx, bg); accentBar(ctx);
-  pill(ctx, 60, 46, '📣  ATTENTION EMPLOYERS', ORANGE, '#1a1a1a');
+  pill(ctx, 60, 46, 'ATTENTION EMPLOYERS', ORANGE, '#1a1a1a');
 
   ctx.fillStyle = WHITE; ctx.font = 'bold 50px Roboto';
   ctx.fillText('Still Hiring via WhatsApp Groups?', 60, 146);
@@ -506,7 +506,7 @@ async function drawEmployerPitch(ctx, d, bg) {
 async function drawIndustryReport(ctx, d, bg) {
   // Same as market_insight but with "INDUSTRY REPORT" pill and World Bank reference
   await drawBg(ctx, bg); accentBar(ctx);
-  pill(ctx, 60, 46, '🌍  INDUSTRY REPORT', '#7c3aed', WHITE);
+  pill(ctx, 60, 46, 'INDUSTRY REPORT', '#7c3aed', WHITE);
   ctx.fillStyle = WHITE; ctx.font = 'bold 46px Roboto';
   ctx.fillText('African Job Market', 60, 154);
   ctx.fillStyle = '#f7a814'; ctx.font = 'bold 46px Roboto';
@@ -544,7 +544,7 @@ async function drawIndustryReport(ctx, d, bg) {
 
 async function drawEmployerTip(ctx, d, bg) {
   await drawBg(ctx, bg, 'medium'); accentBar(ctx);
-  pill(ctx, 60, 46, '💼  EMPLOYER TIP OF THE WEEK', '#cc8000', WHITE);
+  pill(ctx, 60, 46, 'EMPLOYER TIP', '#cc8000', WHITE);
   ctx.fillStyle = WHITE; ctx.font = 'bold 50px Roboto';
   ctx.fillText('Hiring Smarter in Africa', 60, 156);
   ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 21px Roboto';
@@ -574,7 +574,7 @@ async function drawEmployerTip(ctx, d, bg) {
 
 async function drawWeeklyRoundup(ctx, d, bg) {
   await drawBg(ctx, bg); accentBar(ctx);
-  pill(ctx, 60, 46, '📋  WEEKLY ROUNDUP', GREEN, WHITE);
+  pill(ctx, 60, 46, 'WEEKLY ROUNDUP', GREEN, WHITE);
   ctx.fillStyle = WHITE; ctx.font = 'bold 54px Roboto';
   ctx.fillText('This Week on WorkDey', 60, 156);
   ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 22px Roboto';
@@ -603,7 +603,7 @@ async function drawWeeklyRoundup(ctx, d, bg) {
 
 async function drawSuccessStory(ctx, d, bg) {
   await drawBg(ctx, bg, 'medium'); accentBar(ctx);
-  pill(ctx, 60, 46, '⭐  SUCCESS STORY', ORANGE, '#1a1a1a');
+  pill(ctx, 60, 46, 'SUCCESS STORY', ORANGE, '#1a1a1a');
   ctx.fillStyle = WHITE; ctx.font = 'bold 50px Roboto';
   ctx.fillText('From Job Seeker to Hired', 60, 154);
   ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 21px Roboto';
@@ -612,7 +612,7 @@ async function drawSuccessStory(ctx, d, bg) {
   // Quote card
   card(ctx, 60, 222, 1080, 220, 14);
   ctx.fillStyle = ORANGE; ctx.globalAlpha = 0.15;
-  ctx.font = 'bold 180px Roboto'; ctx.fillText('“', 70, 390);
+  ctx.font = 'bold 180px Roboto'; ctx.fillText('"', 70, 390);
   ctx.globalAlpha = 1;
   ctx.fillStyle = WHITE; ctx.font = 'bold 24px Roboto';
   ctx.fillText("I applied to 3 jobs on WorkDey on a Monday morning.", 100, 272);
@@ -630,7 +630,7 @@ async function drawSuccessStory(ctx, d, bg) {
 
 async function drawGigEconomy(ctx, d, bg) {
   await drawBg(ctx, bg); accentBar(ctx);
-  pill(ctx, 60, 46, '⚡  GIG ECONOMY', '#2557a7', WHITE);
+  pill(ctx, 60, 46, 'GIG ECONOMY', '#2557a7', WHITE);
   ctx.fillStyle = WHITE; ctx.font = 'bold 56px Roboto';
   ctx.fillText('Earn Daily. Work Flexibly.', 60, 158);
   ctx.fillStyle = ORANGE; ctx.font = 'bold 38px Roboto';
@@ -655,7 +655,7 @@ async function drawGigEconomy(ctx, d, bg) {
 
 async function drawYouthEmployment(ctx, d, bg) {
   await drawBg(ctx, bg); accentBar(ctx);
-  pill(ctx, 60, 46, '🎓  YOUTH & EMPLOYMENT', '#7c3aed', WHITE);
+  pill(ctx, 60, 46, 'YOUTH & EMPLOYMENT', '#7c3aed', WHITE);
   ctx.fillStyle = WHITE; ctx.font = 'bold 52px Roboto';
   ctx.fillText("Africa's Young Workforce", 60, 154);
   ctx.fillStyle = ORANGE; ctx.font = 'bold 36px Roboto';
@@ -675,7 +675,7 @@ async function drawYouthEmployment(ctx, d, bg) {
   // SDG badge
   card(ctx, 60, 420, 700, 68, 10);
   ctx.fillStyle = ORANGE; ctx.font = '700 17px Roboto';
-  ctx.fillText('🌱  WorkDey supports UN SDG Goal 8: Decent Work and Economic Growth', 82, 448);
+  ctx.fillText('WorkDey supports UN SDG Goal 8: Decent Work and Economic Growth', 82, 448);
   ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 14px Roboto';
   ctx.fillText("Connecting Africa’s youth with verified employment opportunities", 82, 470);
   footer(ctx);
@@ -683,7 +683,7 @@ async function drawYouthEmployment(ctx, d, bg) {
 
 async function drawSalaryInsight(ctx, d, bg) {
   await drawBg(ctx, bg); accentBar(ctx);
-  pill(ctx, 60, 46, '💰  SALARY INSIGHT', GREEN, WHITE);
+  pill(ctx, 60, 46, 'SALARY INSIGHT', GREEN, WHITE);
   const salary = d.salary || { role: 'Accountant', cm: '150,000–300,000 XAF', ng: '₦180,000–₦350,000' };
   ctx.fillStyle = WHITE; ctx.font = 'bold 56px Roboto';
   ctx.fillText(`${salary.role} Salaries in Africa`, 60, 156);
@@ -695,7 +695,7 @@ async function drawSalaryInsight(ctx, d, bg) {
   ctx.strokeStyle = '#ff9500'; ctx.globalAlpha = 0.3;
   roundRect(ctx, 60, 228, 520, 200, 14); ctx.stroke(); ctx.globalAlpha = 1;
   ctx.fillStyle = TEXT_FAINT; ctx.font = '800 13px Roboto'; ctx.textAlign = 'center';
-  ctx.fillText('🇨🇲  CAMEROON', 320, 262); ctx.textAlign = 'left';
+  ctx.fillText('CAMEROON', 320, 262); ctx.textAlign = 'left';
   ctx.fillStyle = ORANGE; ctx.font = 'bold 42px Roboto';
   ctx.textAlign = 'center'; ctx.fillText(salary.cm, 320, 326);
   ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 16px Roboto';
@@ -708,7 +708,7 @@ async function drawSalaryInsight(ctx, d, bg) {
   ctx.strokeStyle = GREEN; ctx.globalAlpha = 0.3;
   roundRect(ctx, 620, 228, 520, 200, 14); ctx.stroke(); ctx.globalAlpha = 1;
   ctx.fillStyle = TEXT_FAINT; ctx.font = '800 13px Roboto'; ctx.textAlign = 'center';
-  ctx.fillText('🇳🇬  NIGERIA', 880, 262); ctx.textAlign = 'left';
+  ctx.fillText('NIGERIA', 880, 262); ctx.textAlign = 'left';
   ctx.fillStyle = GREEN; ctx.font = 'bold 42px Roboto';
   ctx.textAlign = 'center'; ctx.fillText(salary.ng, 880, 326);
   ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 16px Roboto';
