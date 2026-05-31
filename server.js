@@ -5,8 +5,15 @@
 // ═══════════════════════════════════════════════════════════════════
 
 const express = require('express');
-const { createCanvas, loadImage } = require('@napi-rs/canvas');
+const { createCanvas, loadImage, GlobalFonts } = require('@napi-rs/canvas');
 const fetch = require('node-fetch');
+const path = require('path');
+
+// Register bundled fonts — required since Railway has no system fonts
+GlobalFonts.registerFromPath(path.join(__dirname, 'fonts', 'Roboto-Regular.ttf'), 'Roboto');
+GlobalFonts.registerFromPath(path.join(__dirname, 'fonts', 'Roboto-Bold.ttf'), 'Roboto');
+GlobalFonts.registerFromPath(path.join(__dirname, 'fonts', 'Roboto-Black.ttf'), 'Roboto');
+console.log('Fonts registered:', GlobalFonts.families.map(f => f.family).join(', '));
 
 const app = express();
 app.use(express.json());
@@ -95,7 +102,7 @@ function card(ctx, x, y, w, h, r = 12) {
 }
 
 function pill(ctx, x, y, label, bg = ORANGE, fg = '#1a1a1a') {
-  ctx.font = '800 13px Arial';
+  ctx.font = '800 13px Roboto';
   const tw = ctx.measureText(label).width;
   const pw = tw + 40, ph = 38;
   roundRect(ctx, x, y, pw, ph, 19);
@@ -108,7 +115,7 @@ function pill(ctx, x, y, label, bg = ORANGE, fg = '#1a1a1a') {
 }
 
 function logo(ctx, x, y, size = 34) {
-  ctx.font = `900 ${size}px Arial Black, Arial`;
+  ctx.font = `bold ${size}px Roboto`;
   ctx.fillStyle = GREEN;
   ctx.fillText('Work', x, y);
   const ww = ctx.measureText('Work').width;
@@ -116,7 +123,7 @@ function logo(ctx, x, y, size = 34) {
   ctx.fillText('Dey', x + ww, y);
   const dw = ctx.measureText('Dey').width;
   ctx.fillStyle = TEXT_LIGHT;
-  ctx.font = `400 ${Math.round(size * 0.48)}px Arial`;
+  ctx.font = `400 ${Math.round(size * 0.48)}px Roboto`;
   ctx.fillText('  workdey.work', x + ww + dw, y - 2);
 }
 
@@ -162,14 +169,14 @@ function statCard(ctx, x, y, val, lbl, sub, valColor = ORANGE) {
   const CW = 230, CH = 120;
   card(ctx, x, y, CW, CH, 12);
   ctx.fillStyle = valColor;
-  ctx.font = '900 54px Arial Black, Arial';
+  ctx.font = 'bold 54px Roboto';
   ctx.textAlign = 'center';
   ctx.fillText(String(val), x + CW / 2, y + 62);
   ctx.fillStyle = TEXT_LIGHT;
-  ctx.font = '700 13px Arial';
+  ctx.font = '700 13px Roboto';
   ctx.fillText(lbl, x + CW / 2, y + 86);
   ctx.fillStyle = TEXT_FAINT;
-  ctx.font = '400 12px Arial';
+  ctx.font = '400 12px Roboto';
   ctx.fillText(sub, x + CW / 2, y + 106);
   ctx.textAlign = 'left';
 }
@@ -182,9 +189,9 @@ async function drawJobSpotlight(ctx, d, bg) {
   await drawBg(ctx, bg); accentBar(ctx);
   pill(ctx, 60, 46, '🔥  HOT JOBS THIS WEEK', ORANGE, '#1a1a1a');
 
-  ctx.fillStyle = WHITE; ctx.font = '900 58px Arial Black, Arial';
+  ctx.fillStyle = WHITE; ctx.font = 'bold 58px Roboto';
   ctx.fillText(`${d.newJobs || 4}+ New Jobs This Week`, 60, 158);
-  ctx.fillStyle = ORANGE; ctx.font = '700 28px Arial';
+  ctx.fillStyle = ORANGE; ctx.font = '700 28px Roboto';
   ctx.fillText(`${(d.topCategory?.name || 'Sales')} leads with ${d.topCategory?.count || 12}+ openings`, 60, 198);
 
   const jobs = (d.topJobs || []).slice(0, 3);
@@ -193,19 +200,19 @@ async function drawJobSpotlight(ctx, d, bg) {
     const ry = 228 + i * 88;
     card(ctx, 60, ry, 710, 74, 10);
     ctx.fillStyle = jColors[i]; ctx.fillRect(60, ry, 5, 74);
-    ctx.fillStyle = WHITE; ctx.font = '700 21px Arial';
+    ctx.fillStyle = WHITE; ctx.font = '700 21px Roboto';
     ctx.fillText((j.title || '—').slice(0, 40), 86, ry + 32);
-    ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 15px Arial';
+    ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 15px Roboto';
     ctx.fillText(`${j.city || ''}${j.salary_label ? '  ·  ' + j.salary_label : ''}`, 86, ry + 56);
   });
 
   // Right stat box
   card(ctx, 834, 228, 306, 170, 14);
-  ctx.fillStyle = ORANGE; ctx.font = '900 70px Arial Black, Arial';
+  ctx.fillStyle = ORANGE; ctx.font = 'bold 70px Roboto';
   ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 43), 987, 316);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '700 15px Arial';
+  ctx.fillStyle = TEXT_LIGHT; ctx.font = '700 15px Roboto';
   ctx.fillText('ACTIVE JOBS', 987, 346);
-  ctx.fillStyle = TEXT_FAINT; ctx.font = '400 13px Arial';
+  ctx.fillStyle = TEXT_FAINT; ctx.font = '400 13px Roboto';
   ctx.fillText(`${d.totalCos || 29} companies hiring`, 987, 368);
   ctx.textAlign = 'left';
 
@@ -220,9 +227,9 @@ async function drawMarketInsight(ctx, d, bg) {
   await drawBg(ctx, bg); accentBar(ctx);
   pill(ctx, 60, 46, '📊  MARKET INTELLIGENCE', '#2557a7', WHITE);
 
-  ctx.fillStyle = WHITE; ctx.font = '900 48px Arial Black, Arial';
+  ctx.fillStyle = WHITE; ctx.font = 'bold 48px Roboto';
   ctx.fillText('Top In-Demand Skills', 60, 156);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '500 20px Arial';
+  ctx.fillStyle = TEXT_LIGHT; ctx.font = '500 20px Roboto';
   ctx.fillText(`Cameroon & Nigeria  ·  ${new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}`, 60, 192);
 
   const cats = (d.topCategories?.length ? d.topCategories : [
@@ -235,20 +242,20 @@ async function drawMarketInsight(ctx, d, bg) {
   cats.forEach((c, i) => {
     const ry = 224 + i * 56;
     const bw = Math.round((c.count / maxC) * 480);
-    ctx.fillStyle = WHITE; ctx.font = '600 16px Arial';
+    ctx.fillStyle = WHITE; ctx.font = '600 16px Roboto';
     ctx.fillText(c.name, 60, ry + 20);
     roundRect(ctx, 230, ry, bw, 28, 5);
     ctx.fillStyle = bColors[i]; ctx.globalAlpha = 0.88; ctx.fill(); ctx.globalAlpha = 1;
-    ctx.fillStyle = ORANGE; ctx.font = '700 14px Arial';
+    ctx.fillStyle = ORANGE; ctx.font = '700 14px Roboto';
     ctx.fillText(String(c.count), 230 + bw + 10, ry + 20);
   });
 
   card(ctx, 834, 224, 306, 170, 14);
-  ctx.fillStyle = ORANGE; ctx.font = '900 70px Arial Black, Arial';
+  ctx.fillStyle = ORANGE; ctx.font = 'bold 70px Roboto';
   ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 43), 987, 312);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '700 15px Arial';
+  ctx.fillStyle = TEXT_LIGHT; ctx.font = '700 15px Roboto';
   ctx.fillText('ACTIVE JOBS', 987, 342);
-  ctx.fillStyle = TEXT_FAINT; ctx.font = '400 13px Arial';
+  ctx.fillStyle = TEXT_FAINT; ctx.font = '400 13px Roboto';
   ctx.fillText(`${d.weekApps || 19} applications/week`, 987, 364);
   ctx.textAlign = 'left';
 
@@ -265,11 +272,11 @@ async function drawSeekerTip(ctx, d, bg) {
 
   // Big decorative quote
   ctx.fillStyle = ORANGE; ctx.globalAlpha = 0.14;
-  ctx.font = '900 200px Georgia, serif'; ctx.fillText('"', 46, 310);
+  ctx.font = 'bold 200px Roboto'; ctx.fillText('"', 46, 310);
   ctx.globalAlpha = 1;
 
   const tip = d.tipHeadline || 'One page. Clear skills. WhatsApp number.';
-  ctx.fillStyle = WHITE; ctx.font = '900 48px Arial Black, Arial';
+  ctx.fillStyle = WHITE; ctx.font = 'bold 48px Roboto';
   // Word wrap tip
   const words = tip.split(' '); let line = '', ty = 260;
   words.forEach(w => {
@@ -280,16 +287,16 @@ async function drawSeekerTip(ctx, d, bg) {
   });
   ctx.fillText(line.trim(), 60, ty); ty += 42;
 
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 22px Arial';
+  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 22px Roboto';
   ctx.fillText((d.tipSub || '').slice(0, 72), 60, ty + 10);
 
   // AI Coach promo
   card(ctx, 60, ty + 36, 580, 68, 10);
   ctx.strokeStyle = ORANGE; ctx.globalAlpha = 0.38;
   roundRect(ctx, 60, ty + 36, 580, 68, 10); ctx.stroke(); ctx.globalAlpha = 1;
-  ctx.fillStyle = ORANGE; ctx.font = '700 16px Arial';
+  ctx.fillStyle = ORANGE; ctx.font = '700 16px Roboto';
   ctx.fillText('🤖  Practice with WorkDey AI Interview Coach', 82, ty + 60);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 14px Arial';
+  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 14px Roboto';
   ctx.fillText('Free · workdey.work', 82, ty + 82);
 
   footer(ctx);
@@ -311,34 +318,34 @@ async function drawCompanySpotlight(ctx, d, bg) {
   card(ctx, 60, 116, 108, 108, 14);
   ctx.strokeStyle = ORANGE; ctx.lineWidth = 2;
   roundRect(ctx, 60, 116, 108, 108, 14); ctx.stroke();
-  ctx.fillStyle = ORANGE; ctx.font = '900 46px Arial Black, Arial';
+  ctx.fillStyle = ORANGE; ctx.font = 'bold 46px Roboto';
   ctx.textAlign = 'center'; ctx.fillText(ini, 114, 186); ctx.textAlign = 'left';
 
-  ctx.fillStyle = WHITE; ctx.font = '900 48px Arial Black, Arial';
+  ctx.fillStyle = WHITE; ctx.font = 'bold 48px Roboto';
   ctx.fillText((co.name || '').slice(0, 26), 192, 170);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '500 20px Arial';
+  ctx.fillStyle = TEXT_LIGHT; ctx.font = '500 20px Roboto';
   ctx.fillText(`${country}  ·  Verified Employer ✓`, 192, 204);
 
   // Open roles card
   card(ctx, 60, 248, 480, 126, 14);
   ctx.strokeStyle = ORANGE; ctx.globalAlpha = 0.3;
   roundRect(ctx, 60, 248, 480, 126, 14); ctx.stroke(); ctx.globalAlpha = 1;
-  ctx.fillStyle = ORANGE; ctx.font = '900 84px Arial Black, Arial';
+  ctx.fillStyle = ORANGE; ctx.font = 'bold 84px Roboto';
   ctx.textAlign = 'center'; ctx.fillText(String(co.count || 5), 180, 340); ctx.textAlign = 'left';
-  ctx.fillStyle = WHITE; ctx.font = '700 26px Arial';
+  ctx.fillStyle = WHITE; ctx.font = '700 26px Roboto';
   ctx.fillText('Open', 310, 304); ctx.fillText('Positions', 310, 338);
 
   // CTA button
   roundRect(ctx, 60, 402, 360, 60, 30);
   ctx.fillStyle = GREEN; ctx.fill();
-  ctx.fillStyle = WHITE; ctx.font = '800 20px Arial';
+  ctx.fillStyle = WHITE; ctx.font = '800 20px Roboto';
   ctx.textAlign = 'center'; ctx.fillText('Apply at workdey.work →', 240, 439); ctx.textAlign = 'left';
 
   card(ctx, 834, 248, 306, 170, 14);
-  ctx.fillStyle = ORANGE; ctx.font = '900 70px Arial Black, Arial';
+  ctx.fillStyle = ORANGE; ctx.font = 'bold 70px Roboto';
   ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 43), 987, 336);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '700 15px Arial'; ctx.fillText('JOBS AVAILABLE', 987, 364);
-  ctx.fillStyle = TEXT_FAINT; ctx.font = '400 13px Arial'; ctx.fillText(`${d.totalCos || 29}+ employers`, 987, 386);
+  ctx.fillStyle = TEXT_LIGHT; ctx.font = '700 15px Roboto'; ctx.fillText('JOBS AVAILABLE', 987, 364);
+  ctx.fillStyle = TEXT_FAINT; ctx.font = '400 13px Roboto'; ctx.fillText(`${d.totalCos || 29}+ employers`, 987, 386);
   ctx.textAlign = 'left';
 
   footer(ctx);
@@ -352,9 +359,9 @@ async function drawPlatformStats(ctx, d, bg) {
   await drawBg(ctx, bg); accentBar(ctx);
   pill(ctx, 60, 46, '📈  WORKDEY THIS WEEK', GREEN, WHITE);
 
-  ctx.fillStyle = WHITE; ctx.font = '900 52px Arial Black, Arial';
+  ctx.fillStyle = WHITE; ctx.font = 'bold 52px Roboto';
   ctx.fillText('The Numbers Speak', 60, 154);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '500 22px Arial';
+  ctx.fillStyle = TEXT_LIGHT; ctx.font = '500 22px Roboto';
   ctx.fillText('Real impact. Real jobs. Real Africa.', 60, 192);
 
   // 4 stat cards in a single row — each 246px wide with 16px gaps
@@ -371,10 +378,10 @@ async function drawPlatformStats(ctx, d, bg) {
 
   // Hero total jobs bar
   card(ctx, 60, 378, 1080, 116, 14);
-  ctx.fillStyle = ORANGE; ctx.font = '900 80px Arial Black, Arial';
+  ctx.fillStyle = ORANGE; ctx.font = 'bold 80px Roboto';
   ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 43), 370, 456);
-  ctx.fillStyle = WHITE; ctx.font = '700 22px Arial'; ctx.fillText('TOTAL ACTIVE JOBS', 560, 430);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 17px Arial'; ctx.fillText('Cameroon  ·  Nigeria  ·  Africa', 560, 462);
+  ctx.fillStyle = WHITE; ctx.font = '700 22px Roboto'; ctx.fillText('TOTAL ACTIVE JOBS', 560, 430);
+  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 17px Roboto'; ctx.fillText('Cameroon  ·  Nigeria  ·  Africa', 560, 462);
   ctx.textAlign = 'left';
 
   footer(ctx);
@@ -390,7 +397,7 @@ async function drawCareerAdvice(ctx, d, bg) {
   const a = d.article || { title: 'How to Write a CV That Gets You Hired in Cameroon', cat: 'Career Tips', catColor: GREEN };
   pill(ctx, 60, 46, `📚  ${(a.cat || 'CAREER TIPS').toUpperCase()}`, a.catColor || GREEN, WHITE);
 
-  ctx.fillStyle = WHITE; ctx.font = '900 52px Arial Black, Arial';
+  ctx.fillStyle = WHITE; ctx.font = 'bold 52px Roboto';
   const words = (a.title || '').split(' ');
   let line = '', ty = 160, lines = 0;
   words.forEach(w => {
@@ -406,17 +413,17 @@ async function drawCareerAdvice(ctx, d, bg) {
   ctx.beginPath(); ctx.moveTo(60, ty); ctx.lineTo(640, ty); ctx.stroke(); ctx.globalAlpha = 1;
   ty += 36;
 
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 22px Arial';
+  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 22px Roboto';
   ctx.fillText('More career tips →', 60, ty);
   const cw2 = ctx.measureText('More career tips →').width;
-  ctx.fillStyle = ORANGE; ctx.font = '700 22px Arial';
+  ctx.fillStyle = ORANGE; ctx.font = '700 22px Roboto';
   ctx.fillText('  workdey.work/blog', 60 + cw2, ty);
 
   card(ctx, 834, 200, 306, 170, 14);
-  ctx.fillStyle = ORANGE; ctx.font = '900 70px Arial Black, Arial';
+  ctx.fillStyle = ORANGE; ctx.font = 'bold 70px Roboto';
   ctx.textAlign = 'center'; ctx.fillText(String(d.totalJobs || 43), 987, 292);
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '700 15px Arial'; ctx.fillText('JOBS AVAILABLE', 987, 320);
-  ctx.fillStyle = TEXT_FAINT; ctx.font = '400 13px Arial'; ctx.fillText('workdey.work', 987, 342);
+  ctx.fillStyle = TEXT_LIGHT; ctx.font = '700 15px Roboto'; ctx.fillText('JOBS AVAILABLE', 987, 320);
+  ctx.fillStyle = TEXT_FAINT; ctx.font = '400 13px Roboto'; ctx.fillText('workdey.work', 987, 342);
   ctx.textAlign = 'left';
 
   footer(ctx);
@@ -430,43 +437,43 @@ async function drawEmployerPitch(ctx, d, bg) {
   await drawBg(ctx, bg); accentBar(ctx);
   pill(ctx, 60, 46, '📣  ATTENTION EMPLOYERS', ORANGE, '#1a1a1a');
 
-  ctx.fillStyle = WHITE; ctx.font = '900 50px Arial Black, Arial';
+  ctx.fillStyle = WHITE; ctx.font = 'bold 50px Roboto';
   ctx.fillText('Still Hiring via WhatsApp Groups?', 60, 146);
 
   // Left card — problem
   roundRect(ctx, 60, 172, 430, 228, 12);
   ctx.fillStyle = 'rgba(180,30,30,0.18)'; ctx.fill();
   ctx.strokeStyle = 'rgba(220,60,60,0.38)'; ctx.lineWidth = 1; ctx.stroke();
-  ctx.fillStyle = '#ff8a8a'; ctx.font = '800 14px Arial';
+  ctx.fillStyle = '#ff8a8a'; ctx.font = '800 14px Roboto';
   ctx.textAlign = 'center'; ctx.fillText('WHATSAPP GROUPS', 275, 200); ctx.textAlign = 'left';
   ['✗  Unverified candidates', '✗  No skill filtering', '✗  CVs lost in forwards', '✗  No pipeline tracking', '✗  Spam and fake applicants'].forEach((t, i) => {
-    ctx.fillStyle = '#ffbbbb'; ctx.font = '400 17px Arial';
+    ctx.fillStyle = '#ffbbbb'; ctx.font = '400 17px Roboto';
     ctx.fillText(t, 82, 236 + i * 34);
   });
 
   // VS
-  ctx.fillStyle = ORANGE; ctx.font = '900 30px Arial Black, Arial';
+  ctx.fillStyle = ORANGE; ctx.font = 'bold 30px Roboto';
   ctx.textAlign = 'center'; ctx.fillText('VS', 580, 292); ctx.textAlign = 'left';
 
   // Right card — solution
   roundRect(ctx, 710, 172, 430, 228, 12);
   ctx.fillStyle = 'rgba(10,133,8,0.18)'; ctx.fill();
   ctx.strokeStyle = 'rgba(10,133,8,0.38)'; ctx.lineWidth = 1; ctx.stroke();
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '800 14px Arial';
+  ctx.fillStyle = TEXT_LIGHT; ctx.font = '800 14px Roboto';
   ctx.textAlign = 'center'; ctx.fillText('WORKDEY', 925, 200); ctx.textAlign = 'left';
   ['✓  Verified profiles + CVs', '✓  Skills filtering built in', '✓  Full pipeline dashboard', '✓  WhatsApp integrated', `✓  ${d.totalCos || 29}+ companies already use it`].forEach((t, i) => {
-    ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 17px Arial';
+    ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 17px Roboto';
     ctx.fillText(t, 732, 236 + i * 34);
   });
 
   // Bottom CTA
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 20px Arial';
+  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 20px Roboto';
   ctx.fillText('Post your first job ', 60, 438);
   const pw2 = ctx.measureText('Post your first job ').width;
-  ctx.fillStyle = ORANGE; ctx.font = '800 20px Arial';
+  ctx.fillStyle = ORANGE; ctx.font = '800 20px Roboto';
   ctx.fillText('completely free', 60 + pw2, 438);
   const fw2 = ctx.measureText('completely free').width;
-  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 20px Arial';
+  ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 20px Roboto';
   ctx.fillText('  →  workdey.work', 60 + pw2 + fw2, 438);
 
   // Stats bar
@@ -474,7 +481,7 @@ async function drawEmployerPitch(ctx, d, bg) {
   const stats = [`${d.totalJobs || 43} active jobs`, `${d.totalCos || 29} employers`, `${d.weekApps || 19} applications this week`];
   stats.forEach((s, i) => {
     ctx.fillStyle = i % 2 === 0 ? ORANGE : WHITE;
-    ctx.font = '700 18px Arial';
+    ctx.font = '700 18px Roboto';
     ctx.textAlign = 'center';
     ctx.fillText(s, 200 + i * 340, 503);
   });
