@@ -279,7 +279,7 @@ async function drawSeekerTip(ctx, d, bg) {
 
   // Big decorative quote
   ctx.fillStyle = ORANGE; ctx.globalAlpha = 0.14;
-  ctx.font = 'bold 200px Roboto'; ctx.fillText('"', 46, 310);
+  ctx.font = 'bold 200px Roboto'; ctx.fillText('“', 46, 310);
   ctx.globalAlpha = 1;
 
   const tip = d.tipHeadline || 'One page. Clear skills. WhatsApp number.';
@@ -612,14 +612,14 @@ async function drawSuccessStory(ctx, d, bg) {
   // Quote card
   card(ctx, 60, 222, 1080, 220, 14);
   ctx.fillStyle = ORANGE; ctx.globalAlpha = 0.15;
-  ctx.font = 'bold 180px Roboto'; ctx.fillText('"', 70, 390);
+  ctx.font = 'bold 180px Roboto'; ctx.fillText('“', 70, 390);
   ctx.globalAlpha = 1;
   ctx.fillStyle = WHITE; ctx.font = 'bold 24px Roboto';
-  ctx.fillText('I applied to 3 jobs on WorkDey on a Monday morning.', 100, 272);
+  ctx.fillText("I applied to 3 jobs on WorkDey on a Monday morning.", 100, 272);
   ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 22px Roboto';
-  ctx.fillText('By Wednesday I had two callbacks. By Friday I was hired.', 100, 308);
+  ctx.fillText("By Wednesday I had two callbacks. By Friday I was hired.", 100, 308);
   ctx.fillStyle = TEXT_FAINT; ctx.font = '400 19px Roboto';
-  ctx.fillText('I had been looking for 4 months before that.', 100, 344);
+  ctx.fillText("I had been looking for 4 months before that.", 100, 344);
   ctx.fillStyle = ORANGE; ctx.font = '700 18px Roboto';
   ctx.fillText('— Accountant, 28, Douala · Hired via WorkDey', 100, 398);
 
@@ -634,7 +634,7 @@ async function drawGigEconomy(ctx, d, bg) {
   ctx.fillStyle = WHITE; ctx.font = 'bold 56px Roboto';
   ctx.fillText('Earn Daily. Work Flexibly.', 60, 158);
   ctx.fillStyle = ORANGE; ctx.font = 'bold 38px Roboto';
-  ctx.fillText('Africa's Gig Economy is Booming', 60, 210);
+  ctx.fillText("Africa's Gig Economy is Booming", 60, 210);
   ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 20px Roboto';
   ctx.fillText('Over 85% of African workers participate in the informal/gig economy (World Bank)', 60, 248);
 
@@ -657,14 +657,14 @@ async function drawYouthEmployment(ctx, d, bg) {
   await drawBg(ctx, bg); accentBar(ctx);
   pill(ctx, 60, 46, '🎓  YOUTH & EMPLOYMENT', '#7c3aed', WHITE);
   ctx.fillStyle = WHITE; ctx.font = 'bold 52px Roboto';
-  ctx.fillText('Africa's Young Workforce', 60, 154);
+  ctx.fillText("Africa's Young Workforce", 60, 154);
   ctx.fillStyle = ORANGE; ctx.font = 'bold 36px Roboto';
-  ctx.fillText('60% of Africa is under 25 years old', 60, 202);
+  ctx.fillText("60% of Africa is under 25 years old", 60, 202);
   ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 19px Roboto';
   ctx.fillText('Source: World Bank · African Development Bank · UN SDG Goal 8', 60, 238);
 
   const youthStats = [
-    { val: '12M+', lbl: 'New workers/year', sub: 'enter Africa's workforce (World Bank)' },
+    { val: '12M+', lbl: 'New workers/year', sub: 'enter Africa\'s workforce (World Bank)' },
     { val: `${d.totalJobs || 4200}+`, lbl: 'Active Jobs', sub: 'on WorkDey today' },
     { val: `${d.totalCos || 820}+`, lbl: 'Hiring Companies', sub: 'verified employers' },
   ];
@@ -677,7 +677,7 @@ async function drawYouthEmployment(ctx, d, bg) {
   ctx.fillStyle = ORANGE; ctx.font = '700 17px Roboto';
   ctx.fillText('🌱  WorkDey supports UN SDG Goal 8: Decent Work and Economic Growth', 82, 448);
   ctx.fillStyle = TEXT_LIGHT; ctx.font = '400 14px Roboto';
-  ctx.fillText('Connecting Africa's youth with verified employment opportunities', 82, 470);
+  ctx.fillText("Connecting Africa’s youth with verified employment opportunities", 82, 470);
   footer(ctx);
 }
 
