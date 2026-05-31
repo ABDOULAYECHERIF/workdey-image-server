@@ -29,7 +29,7 @@ app.get('/health', (req, res) => res.json({ ok: true, version: 'ideogram-flyer-v
 // WorkDey brand: palm green (#0a8508) + orange (#f7a814)
 // ═══════════════════════════════════════════════════════════════════
 
-// AI text models render 2-3 SHORT text elements cleanly. Use headline + one stat + tagline.
+// Flyer text now comes from the AI (passed in via `flyer`), never hardcoded.
 
 const STYLE = `Premium professional social media flyer, portrait orientation. 
 Deep palm green (#0a8508) and vibrant orange (#f7a814) brand colors. 
@@ -39,7 +39,7 @@ Every letter sharp and readable. Award-winning graphic design quality.`;
 
 function pick(arr, seed) { return arr[seed % arr.length]; }
 
-function buildFlyerPrompt(postType, d, seed) {
+function buildFlyerPrompt(postType, d, seed, flyer) {
   const scenes = [
     "a confident young African professional in a sharp suit smiling in a modern glass office",
     "a stunning Lagos city skyline at golden hour with gleaming towers",
@@ -48,88 +48,20 @@ function buildFlyerPrompt(postType, d, seed) {
     "a successful African businesswoman in elegant professional attire, confident pose",
     "a cinematic aerial view of a thriving African business district at sunset",
     "an African tech worker at a sleek desk with city views behind them",
+    "a group of happy African graduates celebrating, optimistic and bright",
+    "a professional African man reviewing documents at a clean modern desk",
   ];
   const scene = pick(scenes, seed);
 
-  // headline (2-4 words) + one big stat + a short tagline. All short = clean rendering.
-  const flyers = {
-    job_spotlight: {
-      headline: "NEW JOBS THIS WEEK",
-      stat: `${d.newJobs || 47}+`,
-      tagline: "Apply today on WorkDey",
-    },
-    market_insight: {
-      headline: "JOB MARKET REPORT",
-      stat: `${d.totalJobs || 4200}+`,
-      tagline: "Active jobs in Africa",
-    },
-    company_spotlight: {
-      headline: "NOW HIRING",
-      stat: `${d.topCompany?.count || 12}`,
-      tagline: "Open positions on WorkDey",
-    },
-    platform_stats: {
-      headline: "THE NUMBERS SPEAK",
-      stat: `${d.weekApps || 380}`,
-      tagline: "Applications this week",
-    },
-    industry_report: {
-      headline: "AFRICA IS HIRING",
-      stat: "12M+",
-      tagline: "New jobs needed yearly · World Bank",
-    },
-    employer_tip: {
-      headline: "HIRE SMARTER",
-      stat: "+40%",
-      tagline: "More applicants with WorkDey",
-    },
-    weekly_roundup: {
-      headline: "WEEK IN REVIEW",
-      stat: `${d.weekHires || 18}`,
-      tagline: "People hired this week",
-    },
-    seeker_tip: {
-      headline: "CAREER TIP",
-      stat: "4x",
-      tagline: "More callbacks · Apply early",
-    },
-    success_story: {
-      headline: "HIRED IN 5 DAYS",
-      stat: "",
-      tagline: "Real WorkDey success story",
-    },
-    career_advice: {
-      headline: "GROW YOUR CAREER",
-      stat: "",
-      tagline: "Free tips on WorkDey",
-    },
-    employer_pitch: {
-      headline: "POST JOBS FREE",
-      stat: `${d.totalCos || 820}+`,
-      tagline: "Companies trust WorkDey",
-    },
-    gig_economy: {
-      headline: "EARN DAILY",
-      stat: "85%",
-      tagline: "Of Africa works gig · World Bank",
-    },
-    youth_employment: {
-      headline: "AFRICA'S FUTURE",
-      stat: "60%",
-      tagline: "Under 25 · UN SDG Goal 8",
-    },
-    salary_insight: {
-      headline: `${(d.salary?.role || 'SALARY').toUpperCase()} PAY`,
-      stat: "",
-      tagline: "Know your worth on WorkDey",
-    },
-  };
+  // Use AI-generated flyer text, with safe fallbacks
+  const headline = (flyer && flyer.headline) || "WORKDEY";
+  const stat = (flyer && flyer.stat) || "";
+  const tagline = (flyer && flyer.tagline) || "workdey.work";
 
-  const f = flyers[postType] || flyers.platform_stats;
-  const statPart = f.stat ? `a huge bold number "${f.stat}" as the focal point, ` : "";
+  const statPart = stat ? `a huge bold number "${stat}" as the visual focal point, ` : "";
 
   return `A premium recruitment campaign flyer featuring ${scene}. 
-Design includes: the bold headline "${f.headline}" at the top, ${statPart}the short tagline "${f.tagline}", and a clean "WorkDey" logo wordmark at the bottom in green and orange. 
+Design includes: the bold headline "${headline}" at the top, ${statPart}the short tagline "${tagline}", and a clean "WorkDey" logo wordmark at the bottom in green and orange. 
 ${STYLE}`;
 }
 
@@ -138,8 +70,8 @@ ${STYLE}`;
 // ═══════════════════════════════════════════════════════════════════
 // GENERATE FLYER VIA IDEOGRAM (best text rendering)
 // ═══════════════════════════════════════════════════════════════════
-async function generateFlyer(postType, d, seed) {
-  const prompt = buildFlyerPrompt(postType, d, seed);
+async function generateFlyer(postType, d, seed, flyer) {
+  const prompt = buildFlyerPrompt(postType, d, seed, flyer);
 
   const res = await fetch('https://fal.run/fal-ai/ideogram/v2', {
     method: 'POST',
@@ -174,12 +106,11 @@ async function generateFlyer(postType, d, seed) {
 // MAIN ENDPOINT
 // ═══════════════════════════════════════════════════════════════════
 app.post('/generate', async (req, res) => {
-  const { post_type = 'platform_stats', data = {} } = req.body;
-  // Seed for visual variety — changes by hour
-  const seed = Math.floor(Date.now() / 3600000);
+  const { post_type = 'platform_stats', data = {}, flyer = null } = req.body;
+  const seed = Math.floor(Math.random() * 100000);
 
   try {
-    const { bytes } = await generateFlyer(post_type, data, seed);
+    const { bytes } = await generateFlyer(post_type, data, seed, flyer);
     res.set('Content-Type', 'image/png');
     res.send(bytes);
   } catch (e) {
@@ -190,10 +121,10 @@ app.post('/generate', async (req, res) => {
 
 // Preview endpoint — returns the image URL instead of bytes (for testing)
 app.post('/preview', async (req, res) => {
-  const { post_type = 'platform_stats', data = {} } = req.body;
-  const seed = Math.floor(Date.now() / 3600000);
+  const { post_type = 'platform_stats', data = {}, flyer = null } = req.body;
+  const seed = Math.floor(Math.random() * 100000);
   try {
-    const { url } = await generateFlyer(post_type, data, seed);
+    const { url } = await generateFlyer(post_type, data, seed, flyer);
     res.json({ url, post_type });
   } catch (e) {
     res.status(500).json({ error: e.message });
