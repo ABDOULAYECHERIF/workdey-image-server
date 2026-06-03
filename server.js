@@ -151,39 +151,17 @@ app.post('/preview', async (req, res) => {
   }
 });
 
-// In-memory store of recently generated flyers, served as real PNG files
-// so Facebook/Zapier can fetch a proper image with a .png URL.
-const flyerStore = new Map(); // id -> { bytes, exp }
-function storeFlyer(bytes) {
-  const id = Math.random().toString(36).slice(2, 12);
-  flyerStore.set(id, { bytes, exp: Date.now() + 1800000 }); // 30 min
-  // cleanup old
-  for (const [k, v] of flyerStore) if (Date.now() > v.exp) flyerStore.delete(k);
-  return id;
-}
-
-// Generate a flyer and return a public .png URL Facebook can fetch
+// Generate a flyer and return the PERMANENT fal.media CDN URL.
+// fal hosts the image on their CDN — no expiry, no memory, Facebook can always fetch it.
 app.post('/flyer-url', async (req, res) => {
   const { post_type = 'platform_stats', data = {}, flyer = null } = req.body;
   const seed = Math.floor(Math.random() * 100000);
   try {
-    const { bytes } = await generateFlyer(post_type, data, seed, flyer);
-    const id = storeFlyer(bytes);
-    const base = process.env.PUBLIC_URL || `https://workdey-image-server-production.up.railway.app`;
-    res.json({ url: `${base}/flyer/${id}.png` });
+    const { url } = await generateFlyer(post_type, data, seed, flyer);
+    res.json({ url });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
-});
-
-// Serve stored flyer as a real PNG file (public — no auth, so Facebook can fetch)
-app.get('/flyer/:id.png', (req, res) => {
-  const id = req.params.id;
-  const item = flyerStore.get(id);
-  if (!item) { res.status(404).send('Not found'); return; }
-  res.set('Content-Type', 'image/png');
-  res.set('Cache-Control', 'public, max-age=1800');
-  res.send(item.bytes);
 });
 
 
