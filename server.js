@@ -31,7 +31,7 @@ async function sb(path){
 }
 
 // Public routes (no auth): health check + blog (crawlers need open access)
-const PUBLIC_PREFIXES = ['/health', '/blog', '/sitemap.xml', '/robots.txt'];
+const PUBLIC_PREFIXES = ['/health', '/blog', '/sitemap.xml', '/robots.txt', '/flyer'];
 app.use((req, res, next) => {
   if (PUBLIC_PREFIXES.some(p => req.path === p || req.path.startsWith(p + '/'))) return next();
   const auth = req.headers['x-auth-secret'] || req.query.secret;
@@ -147,6 +147,41 @@ app.post('/preview', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// In-memory store of recently generated flyers, served as real PNG files
+// so Facebook/Zapier can fetch a proper image with a .png URL.
+const flyerStore = new Map(); // id -> { bytes, exp }
+function storeFlyer(bytes) {
+  const id = Math.random().toString(36).slice(2, 12);
+  flyerStore.set(id, { bytes, exp: Date.now() + 1800000 }); // 30 min
+  // cleanup old
+  for (const [k, v] of flyerStore) if (Date.now() > v.exp) flyerStore.delete(k);
+  return id;
+}
+
+// Generate a flyer and return a public .png URL Facebook can fetch
+app.post('/flyer-url', async (req, res) => {
+  const { post_type = 'platform_stats', data = {}, flyer = null } = req.body;
+  const seed = Math.floor(Math.random() * 100000);
+  try {
+    const { bytes } = await generateFlyer(post_type, data, seed, flyer);
+    const id = storeFlyer(bytes);
+    const base = process.env.PUBLIC_URL || `https://workdey-image-server-production.up.railway.app`;
+    res.json({ url: `${base}/flyer/${id}.png` });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Serve stored flyer as a real PNG file (public — no auth, so Facebook can fetch)
+app.get('/flyer/:id.png', (req, res) => {
+  const id = req.params.id;
+  const item = flyerStore.get(id);
+  if (!item) { res.status(404).send('Not found'); return; }
+  res.set('Content-Type', 'image/png');
+  res.set('Cache-Control', 'public, max-age=1800');
+  res.send(item.bytes);
 });
 
 
