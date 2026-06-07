@@ -342,4 +342,39 @@ app.get('/robots.txt', (req,res)=>{
 });
 
 
+// ═══════════════════════════════════════════════════════════════════
+// COURSE BANNERS — clean, professional, McKinsey-style wide images
+// No text overlay. Abstract/editorial. Returns permanent fal CDN url.
+// ═══════════════════════════════════════════════════════════════════
+async function generateBanner(theme, seed) {
+  const prompt = theme + ". Professional editorial photograph, sophisticated corporate aesthetic inspired by McKinsey and Harvard Business Review. Deep navy blue and dark teal tones with subtle cyan accents. Cinematic lighting, premium, minimal, elegant. Wide banner composition with clean negative space. NO text, NO words, NO letters, NO logos. High-end business publication quality.";
+  const res = await fetch('https://fal.run/fal-ai/ideogram/v2', {
+    method: 'POST',
+    headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt,
+      aspect_ratio: '16:9',
+      expand_prompt: true,
+      style: 'realistic',
+      num_images: 1,
+    }),
+  });
+  if (!res.ok) throw new Error(`Ideogram error ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  if (!data.images || !data.images[0] || !data.images[0].url) throw new Error('No banner image');
+  return data.images[0].url;
+}
+
+app.post('/banner', async (req, res) => {
+  const { theme = 'abstract business concept' } = req.body;
+  const seed = Math.floor(Math.random() * 100000);
+  try {
+    const url = await generateBanner(theme, seed);
+    res.json({ url });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+
 app.listen(PORT, () => console.log(`WorkDey Flyer Server (Ideogram) on :${PORT}`));
