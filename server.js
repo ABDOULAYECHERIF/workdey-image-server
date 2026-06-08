@@ -329,16 +329,31 @@ app.get('/blog/:slug', async (req, res) => {
 // Sitemap for Google
 app.get('/sitemap.xml', async (req, res) => {
   try {
-    const articles = await sb('blog_articles?select=slug,created_at&published=eq.true&order=created_at.desc&limit=1000');
-    const urls = articles.map(a=>`<url><loc>${SITE}/blog/${a.slug}</loc><lastmod>${(a.created_at||'').slice(0,10)}</lastmod></url>`).join('');
+    // Core static pages of the main site
+    const staticPages = [
+      { loc: SITE + '/',          priority: '1.0', freq: 'daily' },
+      { loc: SITE + '/blog',      priority: '0.8', freq: 'daily' },
+    ];
+    let dynamicUrls = '';
+    // Blog articles
+    try {
+      const articles = await sb('blog_articles?select=slug,created_at&published=eq.true&order=created_at.desc&limit=1000');
+      dynamicUrls += articles.map(a=>`<url><loc>${SITE}/blog/${a.slug}</loc><lastmod>${(a.created_at||'').slice(0,10)}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>`).join('');
+    } catch(e){}
+    // Active jobs as indexable URLs (helps job-related search visibility)
+    try {
+      const jobs = await sb('jobs?select=id,created_at&status=eq.active&order=created_at.desc&limit=2000');
+      dynamicUrls += jobs.map(j=>`<url><loc>${SITE}/?job=${j.id}</loc><lastmod>${(j.created_at||'').slice(0,10)}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>`).join('');
+    } catch(e){}
+    const staticUrls = staticPages.map(p=>`<url><loc>${p.loc}</loc><changefreq>${p.freq}</changefreq><priority>${p.priority}</priority></url>`).join('');
     res.set('Content-Type','application/xml');
-    res.send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${SITE}/blog</loc></url>${urls}</urlset>`);
+    res.send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${staticUrls}${dynamicUrls}</urlset>`);
   } catch(e){ res.status(500).send(''); }
 });
 
 app.get('/robots.txt', (req,res)=>{
   res.set('Content-Type','text/plain');
-  res.send(`User-agent: *\nAllow: /blog\nSitemap: ${SITE}/sitemap.xml`);
+  res.send(`User-agent: *\nAllow: /\nSitemap: ${SITE}/sitemap.xml`);
 });
 
 
